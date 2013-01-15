@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Mutual Fund Screener</title>
+		<script type="text/javascript" 	src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js">
+		</script>
+	</head>
+	<body>
+		<b>Fund Basics: </b>
+        <div id="FundBasics"></div>
+		<b>Fund Performance: </b>
+        <div id="FundPerformance"></div>
+		<b>Fund Prices: </b>
+        <div id="FundPrices"></div>
+		<script type="text/javascript">
+		function getFundBasics() {
+			$.getJSON("/funds?cmd=basics&ticker=FMAGX", function(data) {
+				$("#FundBasics").html("<table>");
+				$("#FundBasics").append("<col valign='top' />");
+				$("#FundBasics").append("<col valign='top' />");
+
+				$("#FundBasics").append("<tr>");
+				$("#FundBasics").append("<td>Fund Name:</td>");
+				$("#FundBasics").append("<td>" + data.Name + "</td>");
+				$("#FundBasics").append("</tr>");
+
+				$("#FundBasics").append("<tr>");
+				$("#FundBasics").append("<td>Total Assets($ mil):</td>");
+				$("#FundBasics").append("<td>" + data.TotalNetAssets + "</td>");
+				$("#FundBasics").append("</tr>");
+
+				$("#FundBasics").append("<tr>");
+				$("#FundBasics").append("<td>Expense Ratio( % ):</td>");
+				$("#FundBasics").append("<td>" + data.TotalExpenseRatio + "</td>");
+				$("#FundBasics").append("</tr>");
+
+				$("#FundBasics").append("</table>");
+			});
+		}
+
+		function getFundPerformance() {
+			$.getJSON("/funds?cmd=perf&ticker=FMAGX", function(data) {
+				$("#FundPerformance").html("<table>");
+				$("#FundPerformance").append("<col valign='top' />");
+				$("#FundPerformance").append("<col valign='top' />");
+
+				$("#FundPerformance").append("<tr>");
+				$("#FundPerformance").append("<td>1 Yr Returns</td>");
+				$("#FundPerformance").append("<td>" + data.Yr1TotalReturns + "</td>");
+				$("#FundPerformance").append("</tr>");
+
+				$("#FundPerformance").append("<tr>");
+				$("#FundPerformance").append("<td>3 Yr Returns</td>");
+				$("#FundPerformance").append("<td>" + data.Yr3TotalReturns + "</td>");
+				$("#FundPerformance").append("</tr>");
+
+				$("#FundPerformance").append("<tr>");
+				$("#FundPerformance").append("<td>5 Yr Returns</td>");
+				$("#FundPerformance").append("<td>" + data.Yr5TotalReturns + "</td>");
+				$("#FundPerformance").append("</tr>");
+
+				$("#FundPerformance").append("<tr>");
+				$("#FundPerformance").append("<td>10 Yr Returns</td>");
+				$("#FundPerformance").append("<td>" + data.Yr10TotalReturns + "</td>");
+				$("#FundPerformance").append("</tr>");
+
+				$("#FundPerformance").append("<tr>");
+				$("#FundPerformance").append("<td>Life Returns</td>");
+				$("#FundPerformance").append("<td>" + data.LifeTotalReturns + "</td>");
+				$("#FundPerformance").append("</tr>");
+
+				$("#FundPerformance").append("</table>");
+			});
+		}
+
+		function getFundPrices() {
+			$.getJSON("/funds?cmd=prices&ticker=FMAGX", function(data) {
+				$("#FundPrices").html("<table>");
+				$("#FundPrices").append("<col valign='top' />");
+				$("#FundPrices").append("<col valign='top' />");
+
+				$("#FundPrices").append("<tr>");
+				$("#FundPrices").append("<td>Net Asset Value:</td>");
+				$("#FundPrices").append("<td>" + data['NAV.PRICE'] + "</td>");
+				$("#FundPrices").append("</tr>");
+
+				$("#FundPrices").append("</table>");
+			});
+		}
+
+		function searchFunds() {
+			$.getJSON("/funds?cmd=search&pgrp=US Equity&sgrp=Utilities", function(data) {
+				$("#SearchResults").empty().html("<table>");
+				$("#SearchResults").append("<col valign='top' align='left'/>");
+				$("#SearchResults").append("<col valign='top' aligh='right'/>");
+				$("#SearchResults").append("<col valign='top' aligh='right'/>");
+				$("#SearchResults").append("<tr>");
+				$("#SearchResults").append("<th>Fund Ticker</th>");
+				$("#SearchResults").append("<th>Fund Name</th>");
+				$("#SearchResults").append("<th>Net Asset Value</th>");
+				$("#SearchResults").append("</tr>");
+				data.forEach(function(ticker, pos) {
+					$.getJSON("/funds?cmd=prices&ticker="+ticker, function(data) {
+						$("#SearchResults").append("<tr>");
+						$("#SearchResults").append("<td>" + data['SYMBOL.TICKER'] + "</td>");
+						$("#SearchResults").append("<td>" + data['INSTR_NAME2'] + "</td>");
+						$("#SearchResults").append("<td>" + data['NAV.PRICE'] + "</td>");
+						$("#SearchResults").append("</tr>");
+					});
+				});
+				$("#SearchResults").append("</table>");
+			});
+		}
+
+		setTimeout(getFundBasics, 1000);
+		setTimeout(getFundPerformance, 1000);
+		setTimeout(getFundPrices, 1000);
+		</script>
+	</body>
+</html>
