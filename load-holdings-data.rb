@@ -9,7 +9,7 @@ ARGV.each do |a|
   $datafile = a
 end
 
-CSV.foreach($datafile, :quote_char => '"', :col_sep =>'|', :row_sep =>:auto, :encoding => 'windows-1251:utf-8') do |row|
+CSV.foreach($datafile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto, :encoding => 'windows-1251:utf-8') do |row|
   if row[1] == "2"
     # holding information => "MFH"|"2"|"T Rowe Price Corporate Income Fund"|"WellPoint, 5.00%, 1/15/11"|"2010-05-31"|"373000"
     fname = row[2]

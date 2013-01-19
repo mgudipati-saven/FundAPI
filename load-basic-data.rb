@@ -46,7 +46,7 @@ if $datafile && File.exist?($datafile)
 		$redisdb.del key
 	end
 
-	CSV.foreach($datafile, :quote_char => '', :col_sep =>'|', :row_sep =>:auto, :encoding => 'windows-1251:utf-8') do |row|
+	CSV.foreach($datafile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto) do |row|
 	  #print "#{row.size}=>"
 	  #p row
 	  if row[1] == "2"
@@ -163,7 +163,7 @@ if $datafile && File.exist?($datafile)
 	                            "PeerGroupReturns", row[64],
 	                            "PeerGroupCount", row[65],
 	                            "Month12Yield", row[73],
-	                            "YieldDate", row[74],
+	                            "YieldDate", row[74]
 	    end
 	  elsif row[1] == "3"
 	    # record type 3 => historical data
