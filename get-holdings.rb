@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby -wKU
 require 'redis'
+require 'json'
 
 $redisdb = Redis.new
 
