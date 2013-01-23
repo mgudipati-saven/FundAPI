@@ -18,12 +18,12 @@ http.createServer(function (req, res) {
     var uri = url.parse(req.url, true);
     
     if (uri.pathname === "/funds") {
-        var cmd = uri.query.cmd;
+      var cmd = uri.query.cmd;
         
-        switch (cmd) {
-        	case 'search':
-        		// funds?cmd=search&name=Fidelity Emerging Asia Fund&pgrp=US Equity&sgrp=Utilities
-        		var key1, key2, key3 = null;
+      switch (cmd) {
+        case 'search':
+        	// funds?cmd=search&name=Fidelity Emerging Asia Fund&pgrp=US Equity&sgrp=Utilities
+        	var key1, key2, key3 = null;
         		
 				if (uri.query.name != null) { 
 					key1 = "FUND::NAME::"+uri.query.name;
