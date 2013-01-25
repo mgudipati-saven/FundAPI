@@ -11,6 +11,25 @@ redisdb.on("error", function (err) {
 });
     
 /*
+ * sendFundHoldings(name, n):
+ *  sends top <n> fund holdings data.
+ *  
+ * @param       res   response channel
+ * @param       name  fund series name
+ * @param       n     number of holdings
+ * @access      public
+ */ 
+function sendFundHoldings(res, name, n) {
+  var dbkey = "fund:"+name+":holdings";
+  redisdb.zrevrange(dbkey, 0, n, function(err, data) {
+    console.dir(data);
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    res.write(JSON.stringify(data));
+    res.end();
+  });
+}
+
+/*
  * http connection handlers
  */
 http.createServer(function (req, res) {
@@ -235,24 +254,12 @@ http.createServer(function (req, res) {
   		    redisdb.select(0, function(reply) {
   		      dbkey = "fund:"+ticker+":basics";
   		      redisdb.hget(dbkey, "Name", function(err, data) {
-  			      dbkey = "fund:"+data+":holdings";
-    	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-                console.dir(data);
-                res.writeHead(200, {'Content-Type': 'text/plain'});
-                res.write(JSON.stringify(data));
-                res.end();
-    	        });
+              sendFundHoldings(res, data, 9);
 		        });
   			  });
     		} else if (name != null) {
-  	      dbkey = "fund:"+name+":holdings";
   		    redisdb.select(0, function(reply) {
-  	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              console.dir(data);
-              res.writeHead(200, {'Content-Type': 'text/plain'});
-              res.write(JSON.stringify(data));
-              res.end();
-  	        });
+            sendFundHoldings(res, name, 9);
   			  });
     		}
 
