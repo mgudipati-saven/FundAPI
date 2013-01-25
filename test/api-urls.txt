@@ -1,0 +1,8 @@
+http://127.0.0.1:8080/funds.json?cmd=perf&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=basics&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=sponsor&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=profile&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=managers&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=ratios&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=fees&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=search&pgrp=US Equity&sgrp=Utilities
