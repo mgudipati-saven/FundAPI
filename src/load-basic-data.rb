@@ -1,5 +1,6 @@
 require 'csv'
 require 'redis'
+require 'json'
 
 $redisdb = Redis.new
 
@@ -192,16 +193,14 @@ if $datafile && File.exist?($datafile)
 	  elsif row[1] == "3"
 	    # record type 3 => historical data
 	    # "MF"|"3"|"CAAMX"|"2005-12-31"|"8489000"|"5"|"7.01"|""
-=begin	    
 	    fticker = row[2]
-	    date = row[3]
-	    if fticker && date
-	      dbkey = "FUND::HISTORY::#{fticker}::#{date}"
-	      $redisdb.hmset dbkey, "TotalNetAssets", row[4],
-	                            "Turnover", row[5],
-	                            "TotalReturns", row[6]
+	    if fticker
+        hash = {:Date => row[3], :TotalNetAssets => row[4], :Turnover => row[5], :TotalReturns => row[6]}
+        #puts "#{fticker} => #{hash}"
+        json = JSON.generate hash
+        setkey = "fund:#{fticker}:hist"
+        $redisdb.zadd setkey, 0, json
 	    end
-=end
 	  end
 	end # CSV.foreach
 end # if File.exist?($datafile)

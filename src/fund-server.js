@@ -208,6 +208,81 @@ http.createServer(function (req, res) {
 			  });
 	  	break;
 
+    	case 'hist':
+    		// funds?cmd=hist&ticker=FMAGX
+    		var ticker = uri.query.ticker,
+			      dbkey = "fund:"+ticker+":hist";
+
+		    redisdb.select(0, function(reply) {
+	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            console.dir(data);
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.write(JSON.stringify(data));
+            res.end();
+	        });
+			  });
+	  	break;
+
+    	case 'holdings':
+    		// funds?cmd=holdings&name=FMAGX
+    		var name = uri.query.name,
+			      dbkey = "fund:"+name+":holdings";
+
+		    redisdb.select(0, function(reply) {
+	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            console.dir(data);
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.write(JSON.stringify(data));
+            res.end();
+	        });
+			  });
+	  	break;
+
+    	case 'assetalloc':
+    		// funds?cmd=assetalloc&name=FMAGX
+    		var name = uri.query.name,
+			      dbkey = "fund:"+name+":asset.allocation";
+
+		    redisdb.select(0, function(reply) {
+	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            console.dir(data);
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.write(JSON.stringify(data));
+            res.end();
+	        });
+			  });
+	  	break;
+
+    	case 'sectalloc':
+    		// funds?cmd=sectalloc&name=FMAGX
+    		var name = uri.query.name,
+			      dbkey = "fund:"+name+":sector.allocation";
+
+		    redisdb.select(0, function(reply) {
+	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            console.dir(data);
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.write(JSON.stringify(data));
+            res.end();
+	        });
+			  });
+	  	break;
+
+    	case 'geoalloc':
+    		// funds?cmd=geoalloc&name=FMAGX
+    		var name = uri.query.name,
+			      dbkey = "fund:"+name+":geo.allocation";
+
+		    redisdb.select(0, function(reply) {
+	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            console.dir(data);
+            res.writeHead(200, {'Content-Type': 'text/plain'});
+            res.write(JSON.stringify(data));
+            res.end();
+	        });
+			  });
+	  	break;
+
     	case 'prices':
     		// funds?cmd=prices&ticker=FMAGX
     		var ticker = uri.query.ticker,
@@ -222,6 +297,13 @@ http.createServer(function (req, res) {
             res.end();
 	        });
 			  });
+	  	break;
+	  	
+	  	default:
+        console.log("Command " + cmd + " Not Found");
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.write("Command Not Found");
+        res.end();
 	  	break;
     } // switch (cmd)
   } // if (uri.pathname === "/funds")

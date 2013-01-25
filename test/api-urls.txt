@@ -5,4 +5,9 @@ http://127.0.0.1:8080/funds.json?cmd=profile&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=managers&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=ratios&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=fees&ticker=FMAGX
-http://127.0.0.1:8080/funds.json?cmd=search&pgrp=US Equity&sgrp=Utilities
+http://127.0.0.1:8080/funds.json?cmd=hist&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=assetalloc&name=Fidelity Magellan Fund
+http://127.0.0.1:8080/funds.json?cmd=sectalloc&name=Fidelity Magellan Fund
+http://127.0.0.1:8080/funds.json?cmd=geoalloc&name=Fidelity Magellan Fund
+http://127.0.0.1:8080/funds.json?cmd=holdings&name=Fidelity Magellan Fund
+
