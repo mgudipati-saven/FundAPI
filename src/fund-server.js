@@ -41,7 +41,46 @@ http.createServer(function (req, res) {
       
     switch (cmd) {
       case 'search':
-      	// funds?cmd=search&name=Fidelity Emerging Asia Fund&pgrp=US Equity&sgrp=Utilities
+      	// funds?cmd=search&name=Fidelity Emerging Asia Fund
+      	// OR
+      	// funds?cmd=search&pgrp=US Equity
+      	// OR
+      	// funds?cmd=search&sgrp=Utilities
+      	// OR
+      	// funds?cmd=search&bindex=S&P 500
+      	
+      	var dbkey = null;
+      	
+      	if (uri.query.name != null) {
+    	    dbkey = "fund.series:"+uri.query.name+":tickers";
+      	}
+
+      	if (uri.query.pgrp != null) {
+    	    dbkey = "fund.primary.group:"+uri.query.pgrp+":tickers";
+      	}
+
+      	if (uri.query.sgrp != null) {
+    	    dbkey = "fund.secondary.group:"+uri.query.sgrp+":tickers";
+      	}
+
+      	if (uri.query.bindex != null) {
+    	    dbkey = "fund.benchmark.index:"+uri.query.bindex+":tickers";
+      	}
+        console.log(dbkey);
+        if (dbkey != null) {
+  				redisdb.select(0, function(reply) {				
+  					redisdb.smembers(dbkey, function(err, data) {
+  		        console.dir(data);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(data));
+  		        res.end();
+  					});
+  				});
+        }
+      break;
+      
+      case 'advsearch':
+      	// funds?cmd=advsearch&name=Fidelity Emerging Asia Fund&pgrp=US Equity&sgrp=Utilities
       	var key1, key2, key3 = null;
       		
 				if (uri.query.name != null) { 
@@ -251,14 +290,14 @@ http.createServer(function (req, res) {
     		    dbkey = null;
     		    
     		if (ticker != null) {
-  		    redisdb.select(0, function(reply) {
+  		    redisdb.select(1, function(reply) {
   		      dbkey = "fund:"+ticker+":basics";
   		      redisdb.hget(dbkey, "Name", function(err, data) {
               sendFundHoldings(res, data, 9);
 		        });
   			  });
     		} else if (name != null) {
-  		    redisdb.select(0, function(reply) {
+  		    redisdb.select(1, function(reply) {
             sendFundHoldings(res, name, 9);
   			  });
     		}
@@ -270,7 +309,7 @@ http.createServer(function (req, res) {
     		var name = uri.query.name,
 			      dbkey = "fund:"+name+":asset.allocation";
 
-		    redisdb.select(0, function(reply) {
+		    redisdb.select(1, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
             console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -285,7 +324,7 @@ http.createServer(function (req, res) {
     		var name = uri.query.name,
 			      dbkey = "fund:"+name+":sector.allocation";
 
-		    redisdb.select(0, function(reply) {
+		    redisdb.select(1, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
             console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -300,7 +339,7 @@ http.createServer(function (req, res) {
     		var name = uri.query.name,
 			      dbkey = "fund:"+name+":geo.allocation";
 
-		    redisdb.select(0, function(reply) {
+		    redisdb.select(1, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
             console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});

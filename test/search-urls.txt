@@ -1,1 +1,1 @@
-http://127.0.0.1:8080/funds.json?cmd=search&pgrp=US Equity&sgrp=Utilities
+http://127.0.0.1:8080/funds.json?cmd=search&bindex=S%26P 500

@@ -4,6 +4,7 @@ require 'redis'
 require 'json'
 
 $redisdb = Redis.new
+$redisdb.select 1
 
 $datafile = ARGV[0]
 if $datafile && File.exist?($datafile)

@@ -84,7 +84,7 @@ if $datafile && File.exist?($datafile)
 	        dbkey = "fund.secondary.group:#{sgroup}:tickers"
 	        $redisdb.sadd dbkey, fticker
 	      end
-	      bindex = row[9]
+	      bindex = row[14]
 	      if bindex
 	        # throw into the appropripate fund.benchmark.index:<benchmark index>:tickers bucket...
 	        dbkey = "fund.benchmark.index:#{bindex}:tickers"
