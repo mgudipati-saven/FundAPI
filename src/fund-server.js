@@ -224,18 +224,38 @@ http.createServer(function (req, res) {
 	  	break;
 
     	case 'holdings':
-    		// funds?cmd=holdings&name=FMAGX
+    		// funds?cmd=holdings&name=Fidelity Magellan Fund
+    		// OR
+    		// funds?cmd=holdings&ticker=FMAGX
     		var name = uri.query.name,
-			      dbkey = "fund:"+name+":holdings";
+    		    ticker = uri.query.ticker,
+    		    dbkey = null;
+    		    
+    		if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+  		      dbkey = "fund:"+ticker+":basics";
+  		      redisdb.hget(dbkey, "Name", function(err, data) {
+  			      dbkey = "fund:"+data+":holdings";
+    	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+                console.dir(data);
+                res.writeHead(200, {'Content-Type': 'text/plain'});
+                res.write(JSON.stringify(data));
+                res.end();
+    	        });
+		        });
+  			  });
+    		} else if (name != null) {
+  	      dbkey = "fund:"+name+":holdings";
+  		    redisdb.select(0, function(reply) {
+  	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+              console.dir(data);
+              res.writeHead(200, {'Content-Type': 'text/plain'});
+              res.write(JSON.stringify(data));
+              res.end();
+  	        });
+  			  });
+    		}
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
-	        });
-			  });
 	  	break;
 
     	case 'assetalloc':
