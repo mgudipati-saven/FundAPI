@@ -3,3 +3,4 @@ http://127.0.0.1:8080/funds.json?cmd=searchByName&name=Fidelity Emerging Asia Fu
 http://127.0.0.1:8080/funds.json?cmd=searchByPrimaryGroup&pgrp=US Equity
 http://127.0.0.1:8080/funds.json?cmd=searchBySecondaryGroup&sgrp=Utilities
 http://127.0.0.1:8080/funds.json?cmd=searchByBenchmarkIndex&bindex=S%26P 500
+http://127.0.0.1:8080/funds.json?cmd=searchByLoadType&type=N

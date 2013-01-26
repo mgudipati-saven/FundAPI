@@ -22,7 +22,7 @@ redisdb.on("error", function (err) {
 function sendFundHoldings(res, name, n) {
   var dbkey = "fund:"+name+":holdings";
   redisdb.zrevrange(dbkey, 0, n, function(err, data) {
-    console.dir(data);
+    //console.dir(data);
     res.writeHead(200, {'Content-Type': 'text/plain'});
     res.write(JSON.stringify(data));
     res.end();
@@ -74,7 +74,7 @@ http.createServer(function (req, res) {
     	    dbkey = "fund.name:"+uri.query.name+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        console.dir(data);
+  		        //console.dir(data);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(data));
   		        res.end();
@@ -89,7 +89,7 @@ http.createServer(function (req, res) {
   	      dbkey = "fund.primary.group:"+uri.query.pgrp+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        console.dir(data);
+  		        //console.dir(data);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(data));
   		        res.end();
@@ -104,7 +104,7 @@ http.createServer(function (req, res) {
   	      dbkey = "fund.secondary.group:"+uri.query.sgrp+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        console.dir(data);
+  		        //console.dir(data);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(data));
   		        res.end();
@@ -119,7 +119,7 @@ http.createServer(function (req, res) {
     	    dbkey = "fund.benchmark.index:"+uri.query.bindex+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        console.dir(data);
+  		        //console.dir(data);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(data));
   		        res.end();
@@ -128,6 +128,34 @@ http.createServer(function (req, res) {
         }
       break;
       
+      case 'searchByLoadType':
+      	// funds?cmd=searchByLoadType&type=Y
+        var type = (uri.query.type == null) ? "N" : uri.query.type;
+        
+      	var dbkey = "fund:tickers";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+            var arr = [];
+            var multi = redisdb.multi();
+            tickers.forEach(function(ticker, pos) {
+              dbkey = "fund:"+ticker+":fees";
+              multi.hget(dbkey, "LoadType", function(err, data) {
+                if (data == type) {
+                  arr.push(ticker);
+                }
+              });
+            });
+            multi.exec(function (err, replies) {
+              console.dir(arr);
+              console.log(arr.length);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(arr));
+  		        res.end();
+        		});
+					});
+				});
+      break;
+
       case 'advsearch':
       	// funds?cmd=advsearch&name=Fidelity Emerging Asia Fund&pgrp=US Equity&sgrp=Utilities
       	var key1, key2, key3 = null;
@@ -147,7 +175,7 @@ http.createServer(function (req, res) {
 				if (key1 != null && key2 != null && key3 != null) {
 					redisdb.select(0, function(reply) {				
 						redisdb.sinter(key1, key2, key3, function(err, data) {
-  		        console.dir(data);
+  		        //console.dir(data);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(data));
   		        res.end();
@@ -156,7 +184,7 @@ http.createServer(function (req, res) {
 				} else if (key1 != null && key2 != null) {
 					redisdb.select(0, function(reply) {				
 						redisdb.sinter(key1, key2, function(err, data) {
-			        console.dir(data);
+			        //console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
 			        res.end();
@@ -165,7 +193,7 @@ http.createServer(function (req, res) {
 				} else if (key2 != null && key3 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.sinter(key2, key3, function(err, data) {
-			        console.dir(data);
+			        //console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
 			        res.end();
@@ -174,7 +202,7 @@ http.createServer(function (req, res) {
 				} else if (key1 != null && key3 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.sinter(key1, key3, function(err, data) {
-			        console.dir(data);
+			        //console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
 			        res.end();
@@ -183,7 +211,7 @@ http.createServer(function (req, res) {
 				} else if (key1 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.zrange(key1, 0, -1, function(err, data) {
-			        console.dir(data);
+			        //console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
 			        res.end();
@@ -192,7 +220,7 @@ http.createServer(function (req, res) {
 				} else if (key2 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.zrange(key2, 0, -1, function(err, data) {
-			        console.dir(data);
+			        //console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
 			        res.end();
@@ -201,7 +229,7 @@ http.createServer(function (req, res) {
 				} else if (key3 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.zrange(key3, 0, -1, function(err, data) {
-			        console.dir(data);
+			        //console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
 			        res.end();
@@ -217,7 +245,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -232,7 +260,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -247,7 +275,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -262,7 +290,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -277,7 +305,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -292,7 +320,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -307,7 +335,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -322,7 +350,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -360,7 +388,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(1, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -375,7 +403,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(1, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
@@ -390,7 +418,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(1, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            console.dir(data);
+            //console.dir(data);
             res.writeHead(200, {'Content-Type': 'text/plain'});
             res.write(JSON.stringify(data));
             res.end();
