@@ -6,48 +6,6 @@ $redisdb = Redis.new
 
 $datafile = ARGV[0]
 if $datafile && File.exist?($datafile)
-	# clean up current database...
-=begin
-	keys = $redisdb.keys "FUND::NAME::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-		  	
-	keys = $redisdb.keys "FUND::SPONSOR::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-
-	keys = $redisdb.keys "FUND::GROUP::PRIMARY::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-
-	keys = $redisdb.keys "FUND::GROUP::SECONDARY::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-
-	keys = $redisdb.keys "FUND::BENCHMARKINDEX::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-
-	keys = $redisdb.keys "FUND::BASIC::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-
-	keys = $redisdb.keys "FUND::PERFORMANCE::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-
-	keys = $redisdb.keys "FUND::HISTORY::*"
-	keys.each do |key|
-		$redisdb.del key
-	end
-=end
 	CSV.foreach($datafile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto) do |row|
 	  #print "#{row.size}=>"
 	  #p row
@@ -56,39 +14,44 @@ if $datafile && File.exist?($datafile)
 	    fticker = row[4]
 	    if fticker
 	      #puts "#{fticker} => #{row[2]}
-	      fseries = row[2]
-	      if fseries
-	        # throw into the appropripate fund.series:<fund series name>:tickers bucket...
-	        dbkey = "fund.series:#{fseries}:tickers"
-	        $redisdb.sadd dbkey, fticker
+
+        # throw into the fund:tickers bucket...
+        dbkey = "fund:tickers"
+        $redisdb.zadd dbkey, 0, fticker
+
+	      fname = row[2]
+	      if fname
+	        # throw into the appropripate fund.name:<fund name>:tickers bucket...
+	        dbkey = "fund.name:#{fname}:tickers"
+          $redisdb.zadd dbkey, 0, fticker
 	      end
 	      fsponsor = row[3]
 	      if fsponsor
 	        # throw into the appropripate fund.sponsor:<fund sponsor name>:tickers bucket...
 	        dbkey = "fund.sponsor:#{fsponsor}:tickers"
-	        $redisdb.sadd dbkey, fticker
+          $redisdb.zadd dbkey, 0, fticker
 
-	        # throw into the appropripate fund.sponsor:<fund sponsor name>:series bucket...
-	        dbkey = "fund.sponsor:#{fsponsor}:series"
-	        $redisdb.sadd dbkey, fseries
+	        # throw into the appropripate fund.sponsor:<fund sponsor name>:names bucket...
+	        dbkey = "fund.sponsor:#{fsponsor}:names"
+	        $redisdb.zadd dbkey, 0, fname
 	      end
 	      pgroup = row[8]
 	      if pgroup
 	        # throw into the appropripate fund.primary.group:<primary group>:tickers bucket...
 	        dbkey = "fund.primary.group:#{pgroup}:tickers"
-	        $redisdb.sadd dbkey, fticker
+          $redisdb.zadd dbkey, 0, fticker
 	      end
 	      sgroup = row[9]
 	      if sgroup
 	        # throw into the appropripate fund.secondary.group:<secondary group>:tickers bucket...
 	        dbkey = "fund.secondary.group:#{sgroup}:tickers"
-	        $redisdb.sadd dbkey, fticker
+          $redisdb.zadd dbkey, 0, fticker
 	      end
 	      bindex = row[14]
 	      if bindex
 	        # throw into the appropripate fund.benchmark.index:<benchmark index>:tickers bucket...
 	        dbkey = "fund.benchmark.index:#{bindex}:tickers"
-	        $redisdb.sadd dbkey, fticker
+          $redisdb.zadd dbkey, 0, fticker
 	      end
 
 	      # update fees data...
@@ -189,7 +152,7 @@ if $datafile && File.exist?($datafile)
 	                            "PeerGroupCount", row[65],
 	                            "Month12Yield", row[73],
 	                            "YieldDate", row[74]
-	    end
+	    end # if fticker
 	  elsif row[1] == "3"
 	    # record type 3 => historical data
 	    # "MF"|"3"|"CAAMX"|"2005-12-31"|"8489000"|"5"|"7.01"|""

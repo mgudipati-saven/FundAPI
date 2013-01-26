@@ -15,7 +15,7 @@ redisdb.on("error", function (err) {
  *  sends top <n> fund holdings data.
  *  
  * @param       res   response channel
- * @param       name  fund series name
+ * @param       name  fund name
  * @param       n     number of holdings
  * @access      public
  */ 
@@ -38,38 +38,87 @@ http.createServer(function (req, res) {
   
   if (uri.pathname === "/funds.json") {
     var cmd = uri.query.cmd;
-      
+
     switch (cmd) {
-      case 'search':
-      	// funds?cmd=search&name=Fidelity Emerging Asia Fund
-      	// OR
-      	// funds?cmd=search&pgrp=US Equity
-      	// OR
-      	// funds?cmd=search&sgrp=Utilities
-      	// OR
-      	// funds?cmd=search&bindex=S&P 500
+      case 'searchByExpenseRatio':
+      	// funds?cmd=searchByExpenseRatio&gt=0.5&lt=1.0
+      	var startr = (uri.query.gt == null) ? 0.0 : uri.query.gt;
+      	var endr = (uri.query.lt == null) ? 2.0 : uri.query.lt;
       	
-      	var dbkey = null;
-      	
+      	var dbkey = "fund:tickers";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+            var arr = [];
+            var multi = redisdb.multi();
+            tickers.forEach(function(ticker, pos) {
+              dbkey = "fund:"+ticker+":ratios";
+              multi.hget(dbkey, "TotalExpenseRatio", function(err, ratio) {
+                if (ratio > startr && ratio <= endr) {
+                  arr.push(ticker);
+                }
+              });
+            });
+            multi.exec(function (err, replies) {
+              //console.dir(arr);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(arr));
+  		        res.end();
+        		});
+					});
+				});
+      break;
+      
+      case 'searchByName':
+      	// funds?cmd=searchByName&name=Fidelity Emerging Asia Fund
       	if (uri.query.name != null) {
-    	    dbkey = "fund.series:"+uri.query.name+":tickers";
-      	}
+    	    dbkey = "fund.name:"+uri.query.name+":tickers";
+  				redisdb.select(0, function(reply) {				
+  					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+  		        console.dir(data);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(data));
+  		        res.end();
+  					});
+  				});
+        }
+      break;
+        
+      case 'searchByPrimaryGroup':
+    	  // funds?cmd=searchByPrimaryGroup&pgrp=US Equity
+    	  if (uri.query.pgrp != null) {
+  	      dbkey = "fund.primary.group:"+uri.query.pgrp+":tickers";
+  				redisdb.select(0, function(reply) {				
+  					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+  		        console.dir(data);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(data));
+  		        res.end();
+  					});
+  				});
+        }
+      break;
 
-      	if (uri.query.pgrp != null) {
-    	    dbkey = "fund.primary.group:"+uri.query.pgrp+":tickers";
-      	}
+      case 'searchBySecondaryGroup':
+    	  // funds?cmd=searchBySecondaryGroup&sgrp=Utilities
+    	  if (uri.query.sgrp != null) {
+  	      dbkey = "fund.secondary.group:"+uri.query.sgrp+":tickers";
+  				redisdb.select(0, function(reply) {				
+  					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+  		        console.dir(data);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(data));
+  		        res.end();
+  					});
+  				});
+        }
+      break;
 
-      	if (uri.query.sgrp != null) {
-    	    dbkey = "fund.secondary.group:"+uri.query.sgrp+":tickers";
-      	}
-
+      case 'searchByBenchmarkIndex':
+      	// funds?cmd=searchByBenchmarkIndex&bindex=S&P 500
       	if (uri.query.bindex != null) {
     	    dbkey = "fund.benchmark.index:"+uri.query.bindex+":tickers";
-      	}
-        console.log(dbkey);
-        if (dbkey != null) {
   				redisdb.select(0, function(reply) {				
-  					redisdb.smembers(dbkey, function(err, data) {
+  					redisdb.zrange(dbkey, 0, -1, function(err, data) {
   		        console.dir(data);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(data));
@@ -84,7 +133,7 @@ http.createServer(function (req, res) {
       	var key1, key2, key3 = null;
       		
 				if (uri.query.name != null) { 
-					key1 = "fund.series:"+uri.query.name+":tickers";
+					key1 = "fund.name:"+uri.query.name+":tickers";
 				}
 			
 				if (uri.query.pgrp != null) {
@@ -133,7 +182,7 @@ http.createServer(function (req, res) {
 					});
 				} else if (key1 != null) {
 					redisdb.select(0, function(reply) {
-						redisdb.smembers(key1, function(err, data) {
+						redisdb.zrange(key1, 0, -1, function(err, data) {
 			        console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
@@ -142,7 +191,7 @@ http.createServer(function (req, res) {
 					});
 				} else if (key2 != null) {
 					redisdb.select(0, function(reply) {
-						redisdb.smembers(key2, function(err, data) {
+						redisdb.zrange(key2, 0, -1, function(err, data) {
 			        console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
@@ -151,7 +200,7 @@ http.createServer(function (req, res) {
 					});
 				} else if (key3 != null) {
 					redisdb.select(0, function(reply) {
-						redisdb.smembers(key3, function(err, data) {
+						redisdb.zrange(key3, 0, -1, function(err, data) {
 			        console.dir(data);
 			        res.writeHead(200, {'Content-Type': 'text/plain'});
 			        res.write(JSON.stringify(data));
