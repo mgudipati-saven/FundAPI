@@ -54,6 +54,7 @@ http.createServer(function (req, res) {
               dbkey = "fund:"+ticker+":ratios";
               multi.hget(dbkey, "TotalExpenseRatio", function(err, ratio) {
                 if (ratio > startr && ratio <= endr) {
+                  console.log(startr+"<"+ratio+"<"+endr);
                   arr.push(ticker);
                 }
               });
@@ -148,6 +149,34 @@ http.createServer(function (req, res) {
             multi.exec(function (err, replies) {
               console.dir(arr);
               console.log(arr.length);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(arr));
+  		        res.end();
+        		});
+					});
+				});
+      break;
+
+      case 'searchByInitialInvestment':
+      	// funds?cmd=searchByInitialInvestment&lt=2500
+        var amt = (uri.query.lt == null) ? 2500 : uri.query.lt;
+        
+      	var dbkey = "fund:tickers";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+            var arr = [];
+            var multi = redisdb.multi();
+            tickers.forEach(function(ticker, pos) {
+              dbkey = "fund:"+ticker+":profile";
+              multi.hget(dbkey, "InitialInvestment", function(err, data) {
+                if (parseInt(data) <= amt) {
+                  arr.push(ticker);
+                }
+              });
+            });
+            multi.exec(function (err, replies) {
+              //console.dir(arr);
+              //console.log(arr.length);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(arr));
   		        res.end();

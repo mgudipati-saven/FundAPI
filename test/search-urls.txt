@@ -4,3 +4,5 @@ http://127.0.0.1:8080/funds.json?cmd=searchByPrimaryGroup&pgrp=US Equity
 http://127.0.0.1:8080/funds.json?cmd=searchBySecondaryGroup&sgrp=Utilities
 http://127.0.0.1:8080/funds.json?cmd=searchByBenchmarkIndex&bindex=S%26P 500
 http://127.0.0.1:8080/funds.json?cmd=searchByLoadType&type=N
+http://127.0.0.1:8080/funds.json?cmd=searchByInitialInvestment&lt=500
+
