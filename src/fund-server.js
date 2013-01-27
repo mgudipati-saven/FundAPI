@@ -107,13 +107,12 @@ http.createServer(function (req, res) {
               dbkey = "fund:"+ticker+":ratios";
               multi.hget(dbkey, "TotalExpenseRatio", function(err, ratio) {
                 if (ratio > startr && ratio <= endr) {
-                  console.log(startr+"<"+ratio+"<"+endr);
                   arr.push(ticker);
                 }
               });
             });
             multi.exec(function (err, replies) {
-              //console.dir(arr);
+              console.dir(arr);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(arr));
   		        res.end();
@@ -268,6 +267,47 @@ http.createServer(function (req, res) {
               multi.hget(dbkey, metric, function(err, data) {
                 var amt = parseFloat(data);
                 if (amt > startr && amt <= endr) {
+                  arr.push(ticker);
+                }
+              });
+            });
+            multi.exec(function (err, replies) {
+              console.dir(arr);
+              console.log(arr.length);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(arr));
+  		        res.end();
+        		});
+					});
+				});
+      break;
+
+      case 'searchByRatios':
+      	// funds?cmd=searchByRatios&param=Turnover&lt=25
+      	var startr = (uri.query.gt == null) ? 0.0 : uri.query.gt;
+      	var endr = (uri.query.lt == null) ? 100.0 : uri.query.lt;
+        var metric = "Turnover";
+        
+        switch (uri.query.param) {
+          case 'Turnover':
+            metric = "Turnover";
+            break;
+            
+          case 'ExpenseRatio':
+          default:
+            metric = "TotalExpenseRatio";
+            break;
+        }
+        
+      	var dbkey = "fund:tickers";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+            var arr = [];
+            var multi = redisdb.multi();
+            tickers.forEach(function(ticker, pos) {
+              dbkey = "fund:"+ticker+":ratios";
+              multi.hget(dbkey, metric, function(err, ratio) {
+                if (ratio > startr && ratio <= endr) {
                   arr.push(ticker);
                 }
               });

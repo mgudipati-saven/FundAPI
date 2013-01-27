@@ -1,4 +1,4 @@
-http://127.0.0.1:8080/funds.json?cmd=searchByExpenseRatio&gt=0.5&lt=1.0
+http://127.0.0.1:8080/funds.json?cmd=searchByExpenseRatio&lt=0.5
 http://127.0.0.1:8080/funds.json?cmd=searchByName&name=Fidelity Emerging Asia Fund
 http://127.0.0.1:8080/funds.json?cmd=searchByPrimaryGroup&pgrp=US Equity
 http://127.0.0.1:8080/funds.json?cmd=searchBySecondaryGroup&sgrp=Utilities
@@ -6,4 +6,6 @@ http://127.0.0.1:8080/funds.json?cmd=searchByBenchmarkIndex&bindex=S%26P 500
 http://127.0.0.1:8080/funds.json?cmd=searchByLoadType&type=N
 http://127.0.0.1:8080/funds.json?cmd=searchByInitialInvestment&lt=500
 http://127.0.0.1:8080/funds.json?cmd=searchByReturns&param=Yr1&lt=25
+http://127.0.0.1:8080/funds.json?cmd=searchByRatios&param=ExpenseRatio&lt=0.5
+http://127.0.0.1:8080/funds.json?cmd=searchByRatios&param=Trunover&lt=50
 
