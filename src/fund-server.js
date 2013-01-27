@@ -93,34 +93,6 @@ http.createServer(function (req, res) {
     var cmd = uri.query.cmd;
 
     switch (cmd) {
-      case 'searchByExpenseRatio':
-      	// funds?cmd=searchByExpenseRatio&gt=0.5&lt=1.0
-      	var startr = (uri.query.gt == null) ? 0.0 : uri.query.gt;
-      	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
-      	
-      	var dbkey = "fund:tickers";
-				redisdb.select(0, function(reply) {				
-					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
-            var arr = [];
-            var multi = redisdb.multi();
-            tickers.forEach(function(ticker, pos) {
-              dbkey = "fund:"+ticker+":ratios";
-              multi.hget(dbkey, "TotalExpenseRatio", function(err, ratio) {
-                if (ratio > startr && ratio <= endr) {
-                  arr.push(ticker);
-                }
-              });
-            });
-            multi.exec(function (err, replies) {
-              console.dir(arr);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(arr));
-  		        res.end();
-        		});
-					});
-				});
-      break;
-      
       case 'searchByName':
       	// funds?cmd=searchByName&name=Fidelity Emerging Asia Fund
       	if (uri.query.name != null) {

@@ -1,4 +1,3 @@
-http://127.0.0.1:8080/funds.json?cmd=searchByExpenseRatio&lt=0.5
 http://127.0.0.1:8080/funds.json?cmd=searchByName&name=Fidelity Emerging Asia Fund
 http://127.0.0.1:8080/funds.json?cmd=searchByPrimaryGroup&pgrp=US Equity
 http://127.0.0.1:8080/funds.json?cmd=searchBySecondaryGroup&sgrp=Utilities
