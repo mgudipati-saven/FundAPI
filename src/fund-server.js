@@ -20,19 +20,25 @@ redisdb.on("error", function (err) {
  * @access      public
  */ 
 function sendFundHoldings(res, name, n) {
-  // obtain the latest holdings date
-  var dbkey = "fund:"+name+":holdings:dates";
-  redisdb.zrevrange(dbkey, 0, n, function(err, dates) {
-    console.dir(dates);
-    if (dates.length != 0 && dates[0] != null) {
-      dbkey = "fund:"+name+":holdings:"+dates[0];
-      redisdb.zrevrange(dbkey, 0, n, function(err, data) {
-        console.dir(data);
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.write(JSON.stringify(data));
+  redisdb.select(1, function(reply) {
+    // obtain the latest holdings date
+    var dbkey = "fund:"+name+":holdings:dates";
+    redisdb.zrevrange(dbkey, 0, n, function(err, dates) {
+      console.log(dbkey);
+      console.dir(dates);
+      if (dates.length != 0 && dates[0] != null) {
+        dbkey = "fund:"+name+":holdings:"+dates[0];
+        redisdb.zrevrange(dbkey, 0, n, function(err, data) {
+          console.log(dbkey);
+          console.dir(data);
+          res.writeHead(200, {'Content-Type': 'text/plain'});
+          res.write(JSON.stringify(data));
+          res.end();
+        });
+      } else {
         res.end();
-      });
-    }
+      }
+    });
   });
 }
 
@@ -56,19 +62,23 @@ function sendFundAllocation(res, name, type) {
     dbkey = "fund:"+name+":geo.allocation:";
   }
   
-  // obtain the latest allocation date
-  redisdb.zrevrange(dbkey+"dates", 0, -1, function(err, dates) {
-    console.dir(dates);
-    if (dates.length != 0 && dates[0] != null) {
-      redisdb.zrevrange(dbkey+dates[0], 0, -1, function(err, data) {
-        console.dir(data);
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.write(JSON.stringify(data));
+  redisdb.select(1, function(reply) {
+    // obtain the latest allocation date
+    redisdb.zrevrange(dbkey+"dates", 0, -1, function(err, dates) {
+      console.log(dbkey);
+      console.dir(dates);
+      if (dates.length != 0 && dates[0] != null) {
+        redisdb.zrevrange(dbkey+dates[0], 0, -1, function(err, data) {
+          console.log(dbkey);
+          console.dir(data);
+          res.writeHead(200, {'Content-Type': 'text/plain'});
+          res.write(JSON.stringify(data));
+          res.end();
+        });
+      } else {
         res.end();
-      });
-    } else {
-      res.end();
-    }
+      }
+    });
   });
 }
 
@@ -483,16 +493,14 @@ http.createServer(function (req, res) {
     		    ticker = uri.query.ticker;
     		    
     		if (ticker != null) {
-  		    redisdb.select(1, function(reply) {
+  		    redisdb.select(0, function(reply) {
   		      var dbkey = "fund:"+ticker+":basics";
   		      redisdb.hget(dbkey, "Name", function(err, data) {
               sendFundHoldings(res, data, 9);
 		        });
   			  });
     		} else if (name != null) {
-  		    redisdb.select(1, function(reply) {
-            sendFundHoldings(res, name, 9);
-  			  });
+          sendFundHoldings(res, name, 9);
     		}
 
 	  	break;
@@ -506,16 +514,14 @@ http.createServer(function (req, res) {
 		        type = uri.query.type;
 		        
     		if (ticker != null) {
-  		    redisdb.select(1, function(reply) {
+  		    redisdb.select(0, function(reply) {
   		      var dbkey = "fund:"+ticker+":basics";
   		      redisdb.hget(dbkey, "Name", function(err, data) {
               sendFundAllocation(res, data, type);
 		        });
   			  });
     		} else if (name != null) {
-  		    redisdb.select(1, function(reply) {
-            sendFundAllocation(res, name, type);
-  			  });
+          sendFundAllocation(res, name, type);
     		}
 	  	break;
 

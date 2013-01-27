@@ -10,4 +10,8 @@ http://127.0.0.1:8080/funds.json?cmd=holdings&name=Fidelity Magellan Fund
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&name=Fidelity Magellan Fund
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&name=Fidelity Magellan Fund
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&name=Fidelity Magellan Fund
+http://127.0.0.1:8080/funds.json?cmd=holdings&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&ticker=FMAGX
 
