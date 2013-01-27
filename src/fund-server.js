@@ -11,7 +11,7 @@ redisdb.on("error", function (err) {
 });
     
 /*
- * sendFundHoldings(name, n):
+ * sendFundHoldings(res, name, n):
  *  sends top <n> fund holdings data.
  *  
  * @param       res   response channel
@@ -20,12 +20,55 @@ redisdb.on("error", function (err) {
  * @access      public
  */ 
 function sendFundHoldings(res, name, n) {
-  var dbkey = "fund:"+name+":holdings";
-  redisdb.zrevrange(dbkey, 0, n, function(err, data) {
-    //console.dir(data);
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.write(JSON.stringify(data));
-    res.end();
+  // obtain the latest holdings date
+  var dbkey = "fund:"+name+":holdings:dates";
+  redisdb.zrevrange(dbkey, 0, n, function(err, dates) {
+    console.dir(dates);
+    if (dates.length != 0 && dates[0] != null) {
+      dbkey = "fund:"+name+":holdings:"+dates[0];
+      redisdb.zrevrange(dbkey, 0, n, function(err, data) {
+        console.dir(data);
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.write(JSON.stringify(data));
+        res.end();
+      });
+    }
+  });
+}
+
+/*
+ * sendFundAllocation(res, name, type):
+ *  sends fund allocation data - asset, sector, geography.
+ *  
+ * @param       res   response channel
+ * @param       name  fund name
+ * @param       type  type of allocation - asset or sector or geo
+ * @access      public
+ */ 
+function sendFundAllocation(res, name, type) {
+  var dbkey = null;
+  
+  if (type == "asset") {
+    dbkey = "fund:"+name+":asset.allocation:";
+  } else if (type == "sector") {
+    dbkey = "fund:"+name+":sector.allocation:";
+  } else {
+    dbkey = "fund:"+name+":geo.allocation:";
+  }
+  
+  // obtain the latest allocation date
+  redisdb.zrevrange(dbkey+"dates", 0, -1, function(err, dates) {
+    console.dir(dates);
+    if (dates.length != 0 && dates[0] != null) {
+      redisdb.zrevrange(dbkey+dates[0], 0, -1, function(err, data) {
+        console.dir(data);
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.write(JSON.stringify(data));
+        res.end();
+      });
+    } else {
+      res.end();
+    }
   });
 }
 
@@ -43,7 +86,7 @@ http.createServer(function (req, res) {
       case 'searchByExpenseRatio':
       	// funds?cmd=searchByExpenseRatio&gt=0.5&lt=1.0
       	var startr = (uri.query.gt == null) ? 0.0 : uri.query.gt;
-      	var endr = (uri.query.lt == null) ? 2.0 : uri.query.lt;
+      	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
       	
       	var dbkey = "fund:tickers";
 				redisdb.select(0, function(reply) {				
@@ -159,7 +202,8 @@ http.createServer(function (req, res) {
 
       case 'searchByInitialInvestment':
       	// funds?cmd=searchByInitialInvestment&lt=2500
-        var amt = (uri.query.lt == null) ? 2500 : uri.query.lt;
+      	var startr = (uri.query.gt == null) ? 0 : uri.query.gt;
+      	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
         
       	var dbkey = "fund:tickers";
 				redisdb.select(0, function(reply) {				
@@ -169,7 +213,8 @@ http.createServer(function (req, res) {
             tickers.forEach(function(ticker, pos) {
               dbkey = "fund:"+ticker+":profile";
               multi.hget(dbkey, "InitialInvestment", function(err, data) {
-                if (parseInt(data) <= amt) {
+                var amt = parseInt(data);
+                if (amt > startr && amt <= endr) {
                   arr.push(ticker);
                 }
               });
@@ -177,6 +222,49 @@ http.createServer(function (req, res) {
             multi.exec(function (err, replies) {
               //console.dir(arr);
               //console.log(arr.length);
+  		        res.writeHead(200, {'Content-Type': 'text/plain'});
+  		        res.write(JSON.stringify(arr));
+  		        res.end();
+        		});
+					});
+				});
+      break;
+
+      case 'searchByReturns':
+      	// funds?cmd=searchByReturns&param=Yr1&lt=25
+      	var startr = (uri.query.gt == null) ? -Infinity : uri.query.gt;
+      	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
+        var metric = "Yr1TotalReturns";
+        
+        if ((uri.query.param == "Yr1")) {
+          metric = "Yr1TotalReturns";
+        } else if ((uri.query.param == "Yr3")) {
+            metric = "Yr3TotalReturns";
+        } else if ((uri.query.param == "Yr5")) {
+            metric = "Yr5TotalReturns";
+        } else if ((uri.query.param == "Yr10")) {
+            metric = "Yr10TotalReturns";
+        } else if ((uri.query.param == "Life")) {
+            metric = "LifeTotalReturns";
+        }
+        
+      	var dbkey = "fund:tickers";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+            var arr = [];
+            var multi = redisdb.multi();
+            tickers.forEach(function(ticker, pos) {
+              dbkey = "fund:"+ticker+":perf";
+              multi.hget(dbkey, metric, function(err, data) {
+                var amt = parseFloat(data);
+                if (amt > startr && amt <= endr) {
+                  arr.push(ticker);
+                }
+              });
+            });
+            multi.exec(function (err, replies) {
+              console.dir(arr);
+              console.log(arr.length);
   		        res.writeHead(200, {'Content-Type': 'text/plain'});
   		        res.write(JSON.stringify(arr));
   		        res.end();
@@ -392,12 +480,11 @@ http.createServer(function (req, res) {
     		// OR
     		// funds?cmd=holdings&ticker=FMAGX
     		var name = uri.query.name,
-    		    ticker = uri.query.ticker,
-    		    dbkey = null;
+    		    ticker = uri.query.ticker;
     		    
     		if (ticker != null) {
   		    redisdb.select(1, function(reply) {
-  		      dbkey = "fund:"+ticker+":basics";
+  		      var dbkey = "fund:"+ticker+":basics";
   		      redisdb.hget(dbkey, "Name", function(err, data) {
               sendFundHoldings(res, data, 9);
 		        });
@@ -410,49 +497,26 @@ http.createServer(function (req, res) {
 
 	  	break;
 
-    	case 'assetalloc':
-    		// funds?cmd=assetalloc&name=FMAGX
+    	case 'alloc':
+    		// funds?cmd=alloc&type=asset&name=Fidelity Magellan Fund
+    		// OR
+    		// funds?cmd=alloc&type=asset&ticker=FMAGX
     		var name = uri.query.name,
-			      dbkey = "fund:"+name+":asset.allocation";
-
-		    redisdb.select(1, function(reply) {
-	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
-	        });
-			  });
-	  	break;
-
-    	case 'sectalloc':
-    		// funds?cmd=sectalloc&name=FMAGX
-    		var name = uri.query.name,
-			      dbkey = "fund:"+name+":sector.allocation";
-
-		    redisdb.select(1, function(reply) {
-	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
-	        });
-			  });
-	  	break;
-
-    	case 'geoalloc':
-    		// funds?cmd=geoalloc&name=FMAGX
-    		var name = uri.query.name,
-			      dbkey = "fund:"+name+":geo.allocation";
-
-		    redisdb.select(1, function(reply) {
-	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
-	        });
-			  });
+		        ticker = uri.query.ticker,
+		        type = uri.query.type;
+		        
+    		if (ticker != null) {
+  		    redisdb.select(1, function(reply) {
+  		      var dbkey = "fund:"+ticker+":basics";
+  		      redisdb.hget(dbkey, "Name", function(err, data) {
+              sendFundAllocation(res, data, type);
+		        });
+  			  });
+    		} else if (name != null) {
+  		    redisdb.select(1, function(reply) {
+            sendFundAllocation(res, name, type);
+  			  });
+    		}
 	  	break;
 
     	case 'prices':
