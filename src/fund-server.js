@@ -235,7 +235,7 @@ http.createServer(function (req, res) {
             var arr = [];
             var multi = redisdb.multi();
             tickers.forEach(function(ticker, pos) {
-              dbkey = "fund:"+ticker+":perf";
+              dbkey = "fund:"+ticker+":returns";
               multi.hget(dbkey, metric, function(err, data) {
                 var amt = parseFloat(data);
                 if (amt > startr && amt <= endr) {
@@ -392,10 +392,10 @@ http.createServer(function (req, res) {
 		    });
   	  break;
 
-    	case 'perf':
-    		// funds?cmd=perf&ticker=FMAGX
+    	case 'returns':
+    		// funds?cmd=returns&ticker=FMAGX
     		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":perf";
+			      dbkey = "fund:"+ticker+":returns";
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {

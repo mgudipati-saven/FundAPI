@@ -125,7 +125,7 @@ if $datafile && File.exist?($datafile)
 	                            "FiscalYearEndDate", row[83]
 	                            
 		    # update performance data...
-	      dbkey = "fund:#{fticker}:perf"
+	      dbkey = "fund:#{fticker}:returns"
 	      $redisdb.hmset dbkey, "Yr1TotalReturns", row[42],
 	                            "Yr3TotalReturns", row[43],
 	                            "Yr5TotalReturns", row[44],
