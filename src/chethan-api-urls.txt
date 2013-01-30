@@ -1,0 +1,11 @@
+http://122.183.102.229:8080/data_api/fund/basedata.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/sponsor.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/manager.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/expenses.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/investments.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/performance.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/performanceMetrics.xml?fundSymbol=AAAAX
+http://122.183.102.229:8080/data_api/fund/holdings.xml?fundSymbol=AACXX
+http://122.183.102.229:8080/data_api/fund/assetAllocation.xml?fundSymbol=AACXX
+http://122.183.102.229:8080/data_api/fund/sectorAllocation.xml?fundSymbol=DGDAX
+http://122.183.102.229:8080/data_api/fund/geographicalAllocation.xml?fundSymbol=DGDAX

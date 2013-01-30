@@ -22,6 +22,10 @@ if $datafile && File.exist?($datafile)
 
 	      fname = row[2]
 	      if fname
+          # throw into the fund:names bucket...
+          dbkey = "fund:names"
+          $redisdb.zadd dbkey, 0, fname
+
 	        # throw into the appropripate fund.name:<fund name>:tickers bucket...
 	        dbkey = "fund.name:#{fname}:tickers"
           $redisdb.zadd dbkey, 0, fticker
@@ -179,6 +183,20 @@ if $datafile && File.exist?($datafile)
             $redisdb.zadd "fund:tickers:auto.complete", 0, prefix
         end
         $redisdb.zadd "fund:tickers:auto.complete", 0, "#{ticker}*"
+      end
+  end
+
+	# create a sorted set of google suggestions for fund names
+  if $redisdb.exists("fund:names")
+      puts "Creating google suggestion list for fund names..."
+
+      arr = $redisdb.zrange "fund:names", 0, -1
+      arr.each do |name|
+        (1..(name.length)).each do |n|
+            prefix = name[0...n]
+            $redisdb.zadd "fund:names:auto.complete", 0, prefix
+        end
+        $redisdb.zadd "fund:names:auto.complete", 0, "#{name}*"
       end
   end
 end # if File.exist?($datafile)

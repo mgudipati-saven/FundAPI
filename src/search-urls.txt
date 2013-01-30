@@ -8,4 +8,6 @@ http://127.0.0.1:8080/funds.json?cmd=searchByReturns&param=Yr1&gt=25
 http://127.0.0.1:8080/funds.json?cmd=searchByRatios&param=ExpenseRatio&lt=0.5
 http://127.0.0.1:8080/funds.json?cmd=searchByRatios&param=Trunover&lt=50
 http://127.0.0.1:8080/funds.json?cmd=searchByTicker&ticker=FMA
+http://127.0.0.1:8080/funds.json?cmd=getAutoCompletionList&ticker=FM
+http://127.0.0.1:8080/funds.json?cmd=getAutoCompletionList&name=Fidelity
 

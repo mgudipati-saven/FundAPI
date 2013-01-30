@@ -86,20 +86,22 @@ function sendFundAllocation(res, name, type) {
 
 
 /*
- * sendFundTickers(res, prefix):
- *    Suggests fund tickers starting with 'prefix' words
+ * sendGoogleSuggestionList(res, dbkey, prefix):
+ *    Suggests auto completion list or also known as google suggestions
+ * for the given 'prefix' words. Useful for fund tickers or names.
  *
  * @param       res     response channel
- * @param       ticker  fund ticker symbol
+ * @param       dbkey   key to the redis db that has the completion list
+ * @param       prefix  prefix word
  * @access      public
  */ 
-function sendFundTickers(res, prefix) {
+function sendGoogleSuggestionList(res, dbkey, prefix) {
   var results = [];
 
   redisdb.select(0, function(reply) {				
-    redisdb.zrank("fund:tickers:auto.complete", prefix, function(err, start) {
+    redisdb.zrank(dbkey, prefix, function(err, start) {
       if (start != null) {
-        redisdb.zrange("fund:tickers:auto.complete", start, -1, function(err, range) {
+        redisdb.zrange(dbkey, start, -1, function(err, range) {
           for (var i=0; i<=range.length-1; i++) {
             var entry = range[i];
             var minlen = (entry.length < prefix.length) ? entry.length : prefix.length; 
@@ -131,15 +133,20 @@ http.createServer(function (req, res) {
     var cmd = uri.query.cmd;
 
     switch (cmd) {
-      case 'searchByTicker':
-    	//funds.json?cmd=searchByTicker&ticker=FM
+      case 'getAutoCompletionList':
+    	//funds.json?cmd=getAutoCompletionList&ticker=FM
+    	//OR
+    	//funds.json?cmd=getAutoCompletionList&name=Fidelity
     	var ticker = uri.query.ticker;
+    	var name = uri.query.name;
     	
     	if (ticker != null) {
-        sendFundTickers(res, ticker);
+        sendGoogleSuggestionList(res, "fund:tickers:auto.complete", ticker);
+      } else if (name != null) {
+        sendGoogleSuggestionList(res, "fund:names:auto.complete", name);
       }
       break;
-      
+
       case 'searchByName':
       	// funds?cmd=searchByName&name=Fidelity Emerging Asia Fund
       	if (uri.query.name != null) {
