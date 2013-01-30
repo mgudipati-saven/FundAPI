@@ -6,6 +6,7 @@ $redisdb = Redis.new
 
 $datafile = ARGV[0]
 if $datafile && File.exist?($datafile)
+  puts "Processing the fund basic data file: #{$datafile}..."
 	CSV.foreach($datafile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto) do |row|
 	  #print "#{row.size}=>"
 	  #p row
@@ -166,4 +167,18 @@ if $datafile && File.exist?($datafile)
 	    end
 	  end
 	end # CSV.foreach
+	
+	# create a sorted set of google suggestions for fund tickers
+  if $redisdb.exists("fund:tickers")
+      puts "Creating google suggestion list for fund tickers..."
+
+      arr = $redisdb.zrange "fund:tickers", 0, -1
+      arr.each do |ticker|
+        (1..(ticker.length)).each do |n|
+            prefix = ticker[0...n]
+            $redisdb.zadd "fund:tickers:auto.complete", 0, prefix
+        end
+        $redisdb.zadd "fund:tickers:auto.complete", 0, "#{ticker}*"
+      end
+  end
 end # if File.exist?($datafile)

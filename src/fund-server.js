@@ -11,6 +11,17 @@ redisdb.on("error", function (err) {
 });
     
 /*
+ * sendJSONData(res, data)
+ *    Sends JSON data to the client.
+ */
+function sendJSONData(res, data) {
+  console.dir(data);
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.write(JSON.stringify(data));
+  res.end();
+}
+
+/*
  * sendFundHoldings(res, name, n):
  *  sends top <n> fund holdings data.
  *  
@@ -20,25 +31,22 @@ redisdb.on("error", function (err) {
  * @access      public
  */ 
 function sendFundHoldings(res, name, n) {
+  // select redis db instance no. 1
   redisdb.select(1, function(reply) {
     // obtain the latest holdings date
     var dbkey = "fund:"+name+":holdings:dates";
-    redisdb.zrevrange(dbkey, 0, n, function(err, dates) {
-      console.log(dbkey);
-      console.dir(dates);
-      if (dates.length != 0 && dates[0] != null) {
-        dbkey = "fund:"+name+":holdings:"+dates[0];
-        redisdb.zrevrange(dbkey, 0, n, function(err, data) {
-          console.log(dbkey);
-          console.dir(data);
-          res.writeHead(200, {'Content-Type': 'text/plain'});
-          res.write(JSON.stringify(data));
-          res.end();
-        });
-      } else {
-        res.end();
-      }
-    });
+    if (redisdb.exists(dbkey)) {
+      redisdb.zrevrange(dbkey, 0, n, function(err, dates) {
+        if (dates.length != 0 && dates[0] != null) {
+          dbkey = "fund:"+name+":holdings:"+dates[0];
+          redisdb.zrevrange(dbkey, 0, n, function(err, data) {
+            sendJSONData(res, data);
+          });
+        } else {
+          sendJSONData(res, []);
+        }
+      });
+    }
   });
 }
 
@@ -65,18 +73,48 @@ function sendFundAllocation(res, name, type) {
   redisdb.select(1, function(reply) {
     // obtain the latest allocation date
     redisdb.zrevrange(dbkey+"dates", 0, -1, function(err, dates) {
-      console.log(dbkey);
-      console.dir(dates);
       if (dates.length != 0 && dates[0] != null) {
         redisdb.zrevrange(dbkey+dates[0], 0, -1, function(err, data) {
-          console.log(dbkey);
-          console.dir(data);
-          res.writeHead(200, {'Content-Type': 'text/plain'});
-          res.write(JSON.stringify(data));
-          res.end();
+          sendJSONData(res, data);
         });
       } else {
-        res.end();
+        sendJSONData(res, []);
+      }
+    });
+  });
+}
+
+
+/*
+ * sendFundTickers(res, prefix):
+ *    Suggests fund tickers starting with 'prefix' words
+ *
+ * @param       res     response channel
+ * @param       ticker  fund ticker symbol
+ * @access      public
+ */ 
+function sendFundTickers(res, prefix) {
+  var results = [];
+
+  redisdb.select(0, function(reply) {				
+    redisdb.zrank("fund:tickers:auto.complete", prefix, function(err, start) {
+      if (start != null) {
+        redisdb.zrange("fund:tickers:auto.complete", start, -1, function(err, range) {
+          for (var i=0; i<=range.length-1; i++) {
+            var entry = range[i];
+            var minlen = (entry.length < prefix.length) ? entry.length : prefix.length; 
+            if (entry.substr(0, minlen) != prefix.substr(0, minlen)) {
+              break;
+            }
+            if (entry.charAt(entry.length-1) == '*') {
+              results.push(entry.substr(0, entry.length-1));
+            }
+          }
+          console.dir(results); 
+          sendJSONData(res, results);
+        });
+      } else {
+        sendJSONData(res, []);
       }
     });
   });
@@ -93,16 +131,22 @@ http.createServer(function (req, res) {
     var cmd = uri.query.cmd;
 
     switch (cmd) {
+      case 'searchByTicker':
+    	//funds.json?cmd=searchByTicker&ticker=FM
+    	var ticker = uri.query.ticker;
+    	
+    	if (ticker != null) {
+        sendFundTickers(res, ticker);
+      }
+      break;
+      
       case 'searchByName':
       	// funds?cmd=searchByName&name=Fidelity Emerging Asia Fund
       	if (uri.query.name != null) {
     	    dbkey = "fund.name:"+uri.query.name+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        //console.dir(data);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(data));
-  		        res.end();
+              sendJSONData(res, data);
   					});
   				});
         }
@@ -114,10 +158,7 @@ http.createServer(function (req, res) {
   	      dbkey = "fund.primary.group:"+uri.query.pgrp+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        //console.dir(data);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(data));
-  		        res.end();
+              sendJSONData(res, data);
   					});
   				});
         }
@@ -129,10 +170,7 @@ http.createServer(function (req, res) {
   	      dbkey = "fund.secondary.group:"+uri.query.sgrp+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        //console.dir(data);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(data));
-  		        res.end();
+              sendJSONData(res, data);
   					});
   				});
         }
@@ -144,10 +182,7 @@ http.createServer(function (req, res) {
     	    dbkey = "fund.benchmark.index:"+uri.query.bindex+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-  		        //console.dir(data);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(data));
-  		        res.end();
+              sendJSONData(res, data);
   					});
   				});
         }
@@ -171,11 +206,7 @@ http.createServer(function (req, res) {
               });
             });
             multi.exec(function (err, replies) {
-              console.dir(arr);
-              console.log(arr.length);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(arr));
-  		        res.end();
+              sendJSONData(res, arr);
         		});
 					});
 				});
@@ -201,11 +232,7 @@ http.createServer(function (req, res) {
               });
             });
             multi.exec(function (err, replies) {
-              //console.dir(arr);
-              //console.log(arr.length);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(arr));
-  		        res.end();
+              sendJSONData(res, arr);
         		});
 					});
 				});
@@ -244,11 +271,7 @@ http.createServer(function (req, res) {
               });
             });
             multi.exec(function (err, replies) {
-              console.dir(arr);
-              console.log(arr.length);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(arr));
-  		        res.end();
+              sendJSONData(res, arr);
         		});
 					});
 				});
@@ -285,11 +308,7 @@ http.createServer(function (req, res) {
               });
             });
             multi.exec(function (err, replies) {
-              console.dir(arr);
-              console.log(arr.length);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(arr));
-  		        res.end();
+              sendJSONData(res, arr);
         		});
 					});
 				});
@@ -314,64 +333,43 @@ http.createServer(function (req, res) {
 				if (key1 != null && key2 != null && key3 != null) {
 					redisdb.select(0, function(reply) {				
 						redisdb.sinter(key1, key2, key3, function(err, data) {
-  		        //console.dir(data);
-  		        res.writeHead(200, {'Content-Type': 'text/plain'});
-  		        res.write(JSON.stringify(data));
-  		        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				} else if (key1 != null && key2 != null) {
 					redisdb.select(0, function(reply) {				
 						redisdb.sinter(key1, key2, function(err, data) {
-			        //console.dir(data);
-			        res.writeHead(200, {'Content-Type': 'text/plain'});
-			        res.write(JSON.stringify(data));
-			        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				} else if (key2 != null && key3 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.sinter(key2, key3, function(err, data) {
-			        //console.dir(data);
-			        res.writeHead(200, {'Content-Type': 'text/plain'});
-			        res.write(JSON.stringify(data));
-			        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				} else if (key1 != null && key3 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.sinter(key1, key3, function(err, data) {
-			        //console.dir(data);
-			        res.writeHead(200, {'Content-Type': 'text/plain'});
-			        res.write(JSON.stringify(data));
-			        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				} else if (key1 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.zrange(key1, 0, -1, function(err, data) {
-			        //console.dir(data);
-			        res.writeHead(200, {'Content-Type': 'text/plain'});
-			        res.write(JSON.stringify(data));
-			        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				} else if (key2 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.zrange(key2, 0, -1, function(err, data) {
-			        //console.dir(data);
-			        res.writeHead(200, {'Content-Type': 'text/plain'});
-			        res.write(JSON.stringify(data));
-			        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				} else if (key3 != null) {
 					redisdb.select(0, function(reply) {
 						redisdb.zrange(key3, 0, -1, function(err, data) {
-			        //console.dir(data);
-			        res.writeHead(200, {'Content-Type': 'text/plain'});
-			        res.write(JSON.stringify(data));
-			        res.end();
+              sendJSONData(res, data);
 						});
 					});
 				}
@@ -384,10 +382,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 		    });
   	  break;
@@ -399,10 +394,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -414,10 +406,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -429,10 +418,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -444,10 +430,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -459,10 +442,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -474,10 +454,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -489,10 +466,7 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            //console.dir(data);
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(data));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
@@ -544,20 +518,14 @@ http.createServer(function (req, res) {
 
 		    redisdb.select(1, function(reply) {
 	        redisdb.get(dbkey, function(err, data) {
-            json = JSON.parse(data);
-            console.log("Prices ======>" + JSON.stringify(json));
-            res.writeHead(200, {'Content-Type': 'text/plain'});
-            res.write(JSON.stringify(json));
-            res.end();
+            sendJSONData(res, data);
 	        });
 			  });
 	  	break;
 	  	
 	  	default:
-        console.log("Command " + cmd + " Not Found");
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.write("Command Not Found");
-        res.end();
+        data = ["Command '"+cmd+"' Not Found"];
+        sendJSONData(res, data);
 	  	break;
     } // switch (cmd)
   } // if (uri.pathname === "/funds")
