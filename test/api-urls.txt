@@ -14,4 +14,10 @@ http://127.0.0.1:8080/funds.json?cmd=holdings&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=listBenchmarkIndices
+http://127.0.0.1:8080/funds.json?cmd=listSecondaryGroups
+http://127.0.0.1:8080/funds.json?cmd=listPrimaryGroups
+http://127.0.0.1:8080/funds.json?cmd=listFundSponsors
+http://127.0.0.1:8080/funds.json?cmd=listFundNames
+http://127.0.0.1:8080/funds.json?cmd=listFundTickers
 

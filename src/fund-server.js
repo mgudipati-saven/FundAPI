@@ -133,18 +133,78 @@ http.createServer(function (req, res) {
     var cmd = uri.query.cmd;
 
     switch (cmd) {
+      case 'listFundTickers':
+    	  //funds.json?cmd=listFundTickers
+  	    dbkey = "fund.tickers";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+					});
+				});
+      break;
+
+      case 'listFundNames':
+    	  //funds.json?cmd=listFundNames
+  	    dbkey = "fund.names";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+					});
+				});
+      break;
+
+      case 'listFundSponsors':
+    	  //funds.json?cmd=listFundSponsors
+  	    dbkey = "fund.sponsors";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+					});
+				});
+      break;
+      
+      case 'listPrimaryGroups':
+    	  //funds.json?cmd=listPrimaryGroups
+  	    dbkey = "fund.primary.groups";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+					});
+				});
+      break;
+
+      case 'listSecondaryGroups':
+    	  //funds.json?cmd=listSecondaryGroups
+  	    dbkey = "fund.secondary.groups";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+					});
+				});
+      break;
+
+      case 'listBenchmarkIndices':
+    	  //funds.json?cmd=listBenchmarkIndices
+  	    dbkey = "fund.benchmark.indices";
+				redisdb.select(0, function(reply) {				
+					redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+					});
+				});
+      break;
+
       case 'getAutoCompletionList':
-    	//funds.json?cmd=getAutoCompletionList&ticker=FM
-    	//OR
-    	//funds.json?cmd=getAutoCompletionList&name=Fidelity
-    	var ticker = uri.query.ticker;
-    	var name = uri.query.name;
+      	//funds.json?cmd=getAutoCompletionList&ticker=FM
+      	//OR
+      	//funds.json?cmd=getAutoCompletionList&name=Fidelity
+      	var ticker = uri.query.ticker;
+      	var name = uri.query.name;
     	
-    	if (ticker != null) {
-        sendGoogleSuggestionList(res, "fund.tickers.auto.complete", ticker);
-      } else if (name != null) {
-        sendGoogleSuggestionList(res, "fund.names.auto.complete", name);
-      }
+      	if (ticker != null) {
+          sendGoogleSuggestionList(res, "fund.tickers.auto.complete", ticker);
+        } else if (name != null) {
+          sendGoogleSuggestionList(res, "fund.names.auto.complete", name);
+        }
       break;
 
       case 'searchByName':
