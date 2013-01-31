@@ -8,4 +8,4 @@ http://122.183.102.229:8080/data_api/fund/performanceMetrics.xml?fundSymbol=AAAA
 http://122.183.102.229:8080/data_api/fund/holdings.xml?fundSymbol=AACXX
 http://122.183.102.229:8080/data_api/fund/assetAllocation.xml?fundSymbol=AACXX
 http://122.183.102.229:8080/data_api/fund/sectorAllocation.xml?fundSymbol=DGDAX
-http://122.183.102.229:8080/data_api/fund/geographicalAllocation.xml?
+http://122.183.102.229:8080/data_api/fund/geographicalAllocation.xml?fundSymbol=DGDAX

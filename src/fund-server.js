@@ -141,9 +141,9 @@ http.createServer(function (req, res) {
     	var name = uri.query.name;
     	
     	if (ticker != null) {
-        sendGoogleSuggestionList(res, "fund:tickers:auto.complete", ticker);
+        sendGoogleSuggestionList(res, "fund.tickers.auto.complete", ticker);
       } else if (name != null) {
-        sendGoogleSuggestionList(res, "fund:names:auto.complete", name);
+        sendGoogleSuggestionList(res, "fund.names.auto.complete", name);
       }
       break;
 
@@ -199,7 +199,7 @@ http.createServer(function (req, res) {
       	// funds?cmd=searchByLoadType&type=Y
         var type = (uri.query.type == null) ? "N" : uri.query.type;
         
-      	var dbkey = "fund:tickers";
+      	var dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
             var arr = [];
@@ -224,7 +224,7 @@ http.createServer(function (req, res) {
       	var startr = (uri.query.gt == null) ? 0 : uri.query.gt;
       	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
         
-      	var dbkey = "fund:tickers";
+      	var dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
             var arr = [];
@@ -263,7 +263,7 @@ http.createServer(function (req, res) {
             metric = "LifeTotalReturns";
         }
         
-      	var dbkey = "fund:tickers";
+      	var dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
             var arr = [];
@@ -301,7 +301,7 @@ http.createServer(function (req, res) {
             break;
         }
         
-      	var dbkey = "fund:tickers";
+      	var dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
             var arr = [];

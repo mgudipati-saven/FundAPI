@@ -1,9 +1,172 @@
+=begin
+  Redis DB layout for fund data is defined as follows:
+  
+  key => "fund.tickers"
+  val => sorted set of fund tickers.
+  e.g.=> "fund.tickers" => ['AAAAX', 'AAABX', ...]
+
+  key => "fund.names"
+  val => sorted set of fund names.
+  e.g.=> "fund.names" => ['AC ONE China Fund, ...]
+  
+  key => "fund.name:#{fname}:tickers".
+  val => sorted set of fund tickers for the given fund name.
+  e.g.=> "fund.name:Fidelity Magellan:tickers" => ['FMAGX']
+  
+  key => "fund.sponsors"
+  val => sorted set of fund sponsors.
+  e.g.=> "fund.sponsors" => ['Brinton Eaton', ...]
+  
+  key => "fund.sponsor:#{fsponsor}:tickers".
+  val => sorted set of fund tickers for the given fund sponsor.
+  e.g.=> "fund.sponsor:Brinton Eaton:tickers" => ['GDAAX', 'GDAIX', 'GDAMX']
+  
+  key => "fund.sponsor:#{fsponsor}:names".
+  val => sorted set of fund names for the given sponsor.
+  e.g.=> "fund.sponsor:Brinton Eaton:names" => ['The Giralda Fund']
+  
+  key => "fund.primary.groups".
+  val => sorted set of fund primary groups.
+  e.g.=> "fund.primary.groups" => ["US Equity", ...]
+  
+  key => "fund.primary.group:#{pgroup}:tickers".
+  val => sorted set of fund tickers that belong to the given primary group.
+  e.g.=> "fund.primary.group:US Equity:tickers" => ["FMAGX", ...]
+  
+  key => "fund.secondary.groups".
+  val => sorted set of fund secondary groups.
+  e.g.=> "fund.secondary.groups" => ["Small Cap Growth", ...]
+  
+  key => "fund.secondary.group:#{sgroup}:tickers".
+  val => sorted set of fund tickers that belong to the given secondary group.
+  e.g.=> "fund.secondary.group:Small Cap Growth:tickers" => ["WSMGX", ...]
+
+  key => "fund.benchmark.indices".
+  val => sorted set of benchmark indices.
+  e.g.=> "fund.benchmark.indices" => ["S&P 500", ...]
+  
+  key => "fund.benchmark.index:#{bindex}:tickers".
+  val => sorted set of fund tickers that belong to the given benchmark index.
+  e.g.=> "fund.benchmark.index:S & P 500:tickers" => ["WRESX", ...]
+
+  key => "fund:#{fticker}:fees"
+  val => hashtable of fund fee related data elements.
+          "ManagementFees",
+          "b12-1Fee",
+          "RedemptionFee",
+          "RedemptionFeeDuration",
+          "SalesCharge",
+          "LoadType",
+          "DeferredLoad",
+          "DeferredLoadDuration"
+  
+  key => "fund:#{fticker}:ratios"
+  val => hashtable of fund expense related data elements.
+          "TotalExpenseRatio",
+          "NetExpenseRatio",
+          "Turnover",
+          "TurnoverDate"
+
+  key => "fund:#{fticker}:managers"
+  val => hashtable of fund management related data elements.
+          "TeamManagement",
+          "ManagerName1",
+          "ManagerName2",
+          "ManagerName3",
+          "ManagerTenure1",
+          "ManagerTenure2",
+          "ManagerTenure3"
+
+  key => "fund:#{fticker}:profile"
+  val => hashtable of fund profile related data elements.
+          "Name",
+          "ShareClass",
+          "InceptionDate",
+          "PrimaryGroup",
+          "SecondaryGroup",
+          "Objective",
+          "Strategy",
+          "Status",
+          "TotalNetAssets",
+          "TotalNetAssetsDate",
+          "InitialInvestment",
+          "IncrementalInvestment",
+          "IRAInitialInvestment",
+          "IRAIncrementalInvestment",
+          "InitialAutomaticInvestmentPlan",
+          "ExpenseWaiverType",
+          "ExpenseWaiverExpiryDate",
+          "ExpenseWaiverOptionCode",
+          "DividendFrequency"
+
+  key => "fund:#{fticker}:sponsor"
+  val => hashtable of fund sponsor related data elements.
+          "Sponsor",
+          "SponsorPhone",
+          "SponsorWebsite",
+          "SponsorStreet",
+          "SponsorStreet2",
+          "SponsorCity",
+          "SponsorState",
+          "SponsorZip"
+
+  key => "fund:#{fticker}:basics"
+  val => hashtable of fund basic data elements.
+          "Symbol",
+          "Name",
+          "CUSIP",
+          "ProspectusDate",
+          "BenchmarkIndex",
+          "FiscalYearEndDate"
+                        
+  key => "fund:#{fticker}:returns"
+  val => hashtable of fund performance or returns related data elements.
+          "Yr1TotalReturns",
+          "Yr3TotalReturns",
+          "Yr5TotalReturns",
+          "Yr10TotalReturns",
+          "LifeTotalReturns",
+          "TotalReturnsDate",
+          "BestQuarterReturns",
+          "BestQuarterReturnsDate",
+          "WorstQuarterReturns",
+          "WorstQuarterReturnsDate",
+          "Yr1AfterTaxReturns",
+          "Yr3AfterTaxReturns",
+          "Yr5AfterTaxReturns",
+          "Yr10AfterTaxReturns",
+          "LifeAfterTaxReturns",
+          "Yr1AfterTaxAndSalesReturns",
+          "Yr3AfterTaxAndSalesReturns",
+          "Yr5AfterTaxAndSalesReturns",
+          "Yr10AfterTaxAndSalesReturns",
+          "LifeAfterTaxAndSalesReturns",
+          "QuartileRanking",
+          "PercentileRanking",
+          "PeerGroupReturns",
+          "PeerGroupCount",
+          "Month12Yield",
+          "YieldDate"
+
+  key => "fund:#{fticker}:hist"
+  val => json object of fund historical data.
+          {:Date =>, :TotalNetAssets =>, :Turnover =>, :TotalReturns =>}
+    
+  key => "fund.tickers.auto.complete"
+  val => sorted set of fund tickers auto completion list
+  e.g => ["A", "AA", "AAA", "AAAA", "AAAAX", ...]
+  
+  key => "fund.names.auto.complete"
+  val => sorted set of fund names auto completion list
+  e.g => ["A", "AC", "AC ", "AC O", "AC ON", ...]          
+=end
+
 require 'csv'
 require 'redis'
 require 'json'
 
 $redisdb = Redis.new
-
+=begin
 $datafile = ARGV[0]
 if $datafile && File.exist?($datafile)
   puts "Processing the fund basic data file: #{$datafile}..."
@@ -17,13 +180,13 @@ if $datafile && File.exist?($datafile)
 	      #puts "#{fticker} => #{row[2]}
 
         # throw into the fund:tickers bucket...
-        dbkey = "fund:tickers"
+        dbkey = "fund.tickers"
         $redisdb.zadd dbkey, 0, fticker
 
 	      fname = row[2]
 	      if fname
           # throw into the fund:names bucket...
-          dbkey = "fund:names"
+          dbkey = "fund.names"
           $redisdb.zadd dbkey, 0, fname
 
 	        # throw into the appropripate fund.name:<fund name>:tickers bucket...
@@ -32,6 +195,10 @@ if $datafile && File.exist?($datafile)
 	      end
 	      fsponsor = row[3]
 	      if fsponsor
+	        # throw into the fund.sponsors bucket...
+	        dbkey = "fund.sponsors"
+          $redisdb.zadd dbkey, 0, fsponsor
+
 	        # throw into the appropripate fund.sponsor:<fund sponsor name>:tickers bucket...
 	        dbkey = "fund.sponsor:#{fsponsor}:tickers"
           $redisdb.zadd dbkey, 0, fticker
@@ -42,18 +209,30 @@ if $datafile && File.exist?($datafile)
 	      end
 	      pgroup = row[8]
 	      if pgroup
+	        # throw into the fund.primary.groups bucket...
+	        dbkey = "fund.primary.groups"
+          $redisdb.zadd dbkey, 0, pgroup
+	        
 	        # throw into the appropripate fund.primary.group:<primary group>:tickers bucket...
 	        dbkey = "fund.primary.group:#{pgroup}:tickers"
           $redisdb.zadd dbkey, 0, fticker
 	      end
 	      sgroup = row[9]
 	      if sgroup
+	        # throw into the fund.secondary.groups bucket...
+	        dbkey = "fund.secondary.groups"
+          $redisdb.zadd dbkey, 0, sgroup
+
 	        # throw into the appropripate fund.secondary.group:<secondary group>:tickers bucket...
 	        dbkey = "fund.secondary.group:#{sgroup}:tickers"
           $redisdb.zadd dbkey, 0, fticker
 	      end
 	      bindex = row[14]
 	      if bindex
+	        # throw into the fund.benchmark.indices bucket...
+	        dbkey = "fund.benchmark.indices"
+          $redisdb.zadd dbkey, 0, bindex
+	        
 	        # throw into the appropripate fund.benchmark.index:<benchmark index>:tickers bucket...
 	        dbkey = "fund.benchmark.index:#{bindex}:tickers"
           $redisdb.zadd dbkey, 0, fticker
@@ -171,32 +350,32 @@ if $datafile && File.exist?($datafile)
 	    end
 	  end
 	end # CSV.foreach
-	
+=end
 	# create a sorted set of google suggestions for fund tickers
-  if $redisdb.exists("fund:tickers")
+  if $redisdb.exists("fund.tickers")
       puts "Creating google suggestion list for fund tickers..."
 
-      arr = $redisdb.zrange "fund:tickers", 0, -1
+      arr = $redisdb.zrange "fund.tickers", 0, -1
       arr.each do |ticker|
         (1..(ticker.length)).each do |n|
             prefix = ticker[0...n]
-            $redisdb.zadd "fund:tickers:auto.complete", 0, prefix
+            $redisdb.zadd "fund.tickers.auto.complete", 0, prefix
         end
-        $redisdb.zadd "fund:tickers:auto.complete", 0, "#{ticker}*"
+        $redisdb.zadd "fund.tickers.auto.complete", 0, "#{ticker}*"
       end
   end
 
 	# create a sorted set of google suggestions for fund names
-  if $redisdb.exists("fund:names")
+  if $redisdb.exists("fund.names")
       puts "Creating google suggestion list for fund names..."
 
-      arr = $redisdb.zrange "fund:names", 0, -1
+      arr = $redisdb.zrange "fund.names", 0, -1
       arr.each do |name|
         (1..(name.length)).each do |n|
             prefix = name[0...n]
-            $redisdb.zadd "fund:names:auto.complete", 0, prefix
+            $redisdb.zadd "fund.names.auto.complete", 0, prefix
         end
-        $redisdb.zadd "fund:names:auto.complete", 0, "#{name}*"
+        $redisdb.zadd "fund.names.auto.complete", 0, "#{name}*"
       end
   end
-end # if File.exist?($datafile)
+#end # if File.exist?($datafile)
