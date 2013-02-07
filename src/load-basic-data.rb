@@ -166,7 +166,7 @@ require 'redis'
 require 'json'
 
 $redisdb = Redis.new
-=begin
+
 $datafile = ARGV[0]
 if $datafile && File.exist?($datafile)
   puts "Processing the fund basic data file: #{$datafile}..."
@@ -350,7 +350,7 @@ if $datafile && File.exist?($datafile)
 	    end
 	  end
 	end # CSV.foreach
-=end
+
 	# create a sorted set of google suggestions for fund tickers
   if $redisdb.exists("fund.tickers")
       puts "Creating google suggestion list for fund tickers..."
