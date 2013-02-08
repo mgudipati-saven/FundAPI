@@ -51,9 +51,9 @@ $redisdb.select 1
   02ALX            0147521090002011062400000013WREI           18383M472002
   ...
 =end
-IO.foreach(infile) do |line|
-  fticker = ''
-  
+fticker = ''
+numrec = 0
+IO.foreach(infile) do |line|  
   line.chomp!
   case line[0..1]
     when '01' #Basket Header
@@ -82,34 +82,34 @@ IO.foreach(infile) do |line|
                               "TradeDate", line[29..36],
 
                               #Component Count...99,999,999
-                              "ComponentCount", line[37..44],
+                              "ComponentCount", line[37..44].to_i,
 
                               #Create/Redeem Units per Trade...99,999,999
-                              "CreationUnitsPerTrade", line[45..52],
+                              "CreationUnitsPerTrade", line[45..52].to_i,
 
                               #Estimated T-1 Cash Amount Per Creation Unit...999,999,999,999.99-
-                              "EstimatedT1CashAmountPerCreationUnit", "#{line[67]}#{line[53..64]}.#{line[65..66]}",
+                              "EstimatedT1CashAmountPerCreationUnit", "#{line[67]}#{line[53..64]}.#{line[65..66]}".to_f,
 
                               #Estimated T-1 Cash Per Index Receipt...99,999,999,999.99
-                              "EstimatedT1CashPerIndexReceipt", "#{line[81]}#{line[68..78]}.#{line[79..80]}",
+                              "EstimatedT1CashPerIndexReceipt", "#{line[81]}#{line[68..78]}.#{line[79..80]}".to_f,
 
                               #Net Asset Value Per Creation Unit...99,999,999,999.99
-                              "NavPerCreationUnit", "#{line[95]}#{line[82..92]}.#{line[93..94]}",
+                              "NavPerCreationUnit", "#{line[95]}#{line[82..92]}.#{line[93..94]}".to_f,
 
                               #Net Asset Value Per Index Receipt...99,999,999,999.99
-                              "NavPerIndexReceipt", "#{line[109]}#{line[96..106]}.#{line[107..108]}",
+                              "NavPerIndexReceipt", "#{line[109]}#{line[96..106]}.#{line[107..108]}".to_f,
 
                               #Total Cash Amount Per Creation Unit...99,999,999,999.99-
-                              "TotalCashAmount", "#{line[123]}#{line[110..120]}.#{line[121..122]}",
+                              "TotalCashAmount", "#{line[123]}#{line[110..120]}.#{line[121..122]}".to_f,
 
                               #Total Shares Outstanding Per ETF...999,999,999,999
-                              "TotalSharesOutstanding", line[124..135],
+                              "TotalSharesOutstanding", line[124..135].to_i,
 
                               #Dividend Amount Per Index Receipt...99,999,999,999.99
-                              "DividendAmount", "#{line[149]}#{line[136..146]}.#{line[147..148]}",
+                              "DividendAmount", "#{line[149]}#{line[136..146]}.#{line[147..148]}".to_f,
 
-                              #Cash / Security Indicator...  1 = Cash only 2 = Cash or components other – components only
-                              "CashIndicator", line[150]      
+                              #Cash/Security Indicator...  1 = Cash only 2 = Cash or components other – components only
+                              "CashIndicator", line[150]
       end
     when '02' #Basket Component Detail
       numrec += 1
@@ -134,7 +134,7 @@ IO.foreach(infile) do |line|
         "TradeDate" => line[29..36],
 
         #Component Share Qty...99,999,999
-        "ShareQuantity" => line[37..44],
+        "ShareQuantity" => line[37..44].to_i,
 
         #New Security Indicator...N = New CUSIP Space = Old CUSIP
         "NewSecurityIndicator" => line[72]
