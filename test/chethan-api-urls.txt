@@ -9,3 +9,11 @@ http://122.183.102.229:8080/data_api/fund/holdings.xml?fundSymbol=AACXX
 http://122.183.102.229:8080/data_api/fund/assetAllocation.xml?fundSymbol=AACXX
 http://122.183.102.229:8080/data_api/fund/sectorAllocation.xml?fundSymbol=DGDAX
 http://122.183.102.229:8080/data_api/fund/geographicalAllocation.xml?fundSymbol=DGDAX
+http://122.183.102.229:8080/data_api/fund/search/listFundsByNameOrSymbol.xml?value=Alternative
+http://122.183.102.229:8080/data_api/fund/list/fundGroup.xml
+http://122.183.102.229:8080/data_api/fund/list/secondaryGroup.xml
+http://122.183.102.229:8080/data_api/fund/list/benchmarkIndices.xml
+http://122.183.102.229:8080/data_api/fund/list/loadFunds.xml
+http://122.183.102.229:8080/data_api/fund/list/fundSponsor.xml
+http://122.183.102.229:8080/data_api/fund/list/dividendFrequency.xml
+http://122.183.102.229:8080/data_api/fund/search.xml?fundGrp=1&initInv=1000,10000&initInvFilter=bt

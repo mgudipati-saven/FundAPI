@@ -378,4 +378,4 @@ if $datafile && File.exist?($datafile)
         $redisdb.zadd "fund.names.auto.complete", 0, "#{name}*"
       end
   end
-#end # if File.exist?($datafile)
+end # if File.exist?($datafile)
