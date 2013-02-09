@@ -4,7 +4,7 @@ require 'json'
 
 # Redis database connection
 $redisdb = Redis.new
-$redisdb.select 1
+$redisdb.select 0
 
 # Open TCP socket connection to plusfeed server
 #ctfSocket = TCPSocket::new( "127.0.0.1", 8888 )

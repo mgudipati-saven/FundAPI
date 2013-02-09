@@ -1,17 +1,39 @@
 =begin
   Redis DB layout for etf data is defined as follows:
 
-  key => "fund.tickers"
-  val => sorted set of fund tickers.
-  e.g.=> "fund.tickers" => ['AAAAX', 'AAABX', ...]
-  # Key => DTCC:BASKET:#{Index Receipt CUSIP}
-  # Value => Hashtable {"IndexReceiptSymbol" => "SPY", "CreationUnit" => "50000", "Components" => json object of components hash}
-  #
-  # Key => DTCC:COMPONENT:#{CUSIP}
-  # Value => Hashtable {"CUSIP" => "123456789", "Baskets" => json object of baskets hash}
-  #
-  # Key => SECURITIES:XREF:#{CUSIP}
-  # Value => Hashtable {"CUSIP" => "123456789", "DTCC" => "IBM"}
+  key => "etf.tickers"
+  val => sorted set of etf tickers.
+  e.g.=> "etf.tickers" => ['AAAAX', 'AAABX', ...]
+
+  key => etf:#{fticker}:profile
+  val => hashtable of fund profile related data elements.
+          "TickerSymbol",
+          "CUSIP",
+          "WhenIssuedIndicator",
+          "ForeignIndicator",
+          "ExchangeIndicator",
+          "TradeDate",
+          "ComponentCount",
+          "CreationUnitsPerTrade",
+          "EstimatedT1CashAmountPerCreationUnit",
+          "EstimatedT1CashPerIndexReceipt",
+          "NavPerCreationUnit",
+          "NavPerIndexReceipt",
+          "TotalCashAmount",
+          "TotalSharesOutstanding",
+          "DividendAmount",
+          "CashIndicator"
+
+  key => etf:#{fticker}:components
+  val => sorted set of json objects of holding information
+          "CUSIP,
+          "TickerSymbol",
+          "WhenIssuedIndicator",
+          "ForeignIndicator",
+          "ExchangeIndicator",
+          "TradeDate",
+          "ShareQuantity",
+          "NewSecurityIndicator"
 =end
 
 require 'redis'
@@ -39,7 +61,7 @@ opts.each do |opt, arg|
 end
 
 $redisdb = Redis.new
-$redisdb.select 1
+$redisdb.select 0
 
 =begin
   Process the DTCC basket composition file. DTCC file layout is defined as follows:
@@ -53,7 +75,7 @@ $redisdb.select 1
 =end
 fticker = ''
 numrec = 0
-IO.foreach(infile) do |line|  
+IO.foreach(infile) do |line|
   line.chomp!
   case line[0..1]
     when '01' #Basket Header
@@ -62,6 +84,10 @@ IO.foreach(infile) do |line|
       #Index Receipt Symbol...Trading Symbol
       fticker = line[2..16].strip
       if fticker
+        # throw into the etf:tickers bucket...
+        dbkey = "etf.tickers"
+        $redisdb.zadd dbkey, 0, fticker
+        
         # update profile data...
   	    dbkey = "etf:#{fticker}:profile"
         $redisdb.hmset dbkey, "TickerSymbol", fticker,
@@ -137,7 +163,7 @@ IO.foreach(infile) do |line|
         "ShareQuantity" => line[37..44].to_i,
 
         #New Security Indicator...N = New CUSIP Space = Old CUSIP
-        "NewSecurityIndicator" => line[72]
+        "NewSecurityIndicator" => line[71]
         }
 
       if fticker
@@ -155,4 +181,12 @@ IO.foreach(infile) do |line|
       end
   end
 end
-  
+
+=begin rdoc
+ * Name: load-dtcc-file.rb
+ * Description: Loads DTCC file into redis db.
+ * Call using "ruby load-dtcc-file.rb -i, --infile=<dtcc file>"  
+ * Author: Murthy Gudipati
+ * Date: 07-Feb-2012
+ * License: Saven Technologies Inc.
+=end

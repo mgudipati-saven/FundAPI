@@ -15,7 +15,7 @@ redisdb.on("error", function (err) {
  *    Sends JSON data to the client.
  */
 function sendJSONData(res, data) {
-  console.dir(data);
+  //console.dir(data);
   res.writeHead(200, {'Content-Type': 'text/plain'});
   res.write(JSON.stringify(data));
   res.end();
@@ -32,7 +32,7 @@ function sendJSONData(res, data) {
  */ 
 function sendFundHoldings(res, name, n) {
   // select redis db instance no. 1
-  redisdb.select(1, function(reply) {
+  redisdb.select(0, function(reply) {
     // obtain the latest holdings date
     var dbkey = "fund:"+name+":holdings:dates";
     if (redisdb.exists(dbkey)) {
@@ -62,15 +62,21 @@ function sendFundHoldings(res, name, n) {
 function sendFundAllocation(res, name, type) {
   var dbkey = null;
   
-  if (type == "asset") {
-    dbkey = "fund:"+name+":asset.allocation:";
-  } else if (type == "sector") {
-    dbkey = "fund:"+name+":sector.allocation:";
-  } else {
-    dbkey = "fund:"+name+":geo.allocation:";
+  switch (type) {
+    case 'asset':
+      dbkey = "fund:"+name+":asset.allocation:";
+    break;
+
+    case 'sector':
+      dbkey = "fund:"+name+":sector.allocation:";
+    break;
+
+    default:
+      dbkey = "fund:"+name+":geo.allocation:";
+    break;
   }
   
-  redisdb.select(1, function(reply) {
+  redisdb.select(0, function(reply) {
     // obtain the latest allocation date
     redisdb.zrevrange(dbkey+"dates", 0, -1, function(err, dates) {
       if (dates.length != 0 && dates[0] != null) {
@@ -112,7 +118,6 @@ function sendGoogleSuggestionList(res, dbkey, prefix) {
               results.push(entry.substr(0, entry.length-1));
             }
           }
-          console.dir(results); 
           sendJSONData(res, results);
         });
       } else {
@@ -583,7 +588,7 @@ http.createServer(function (req, res) {
     		var ticker = uri.query.ticker,
 			      dbkey = "338::"+ticker;
 
-		    redisdb.select(1, function(reply) {
+		    redisdb.select(0, function(reply) {
 	        redisdb.get(dbkey, function(err, data) {
             sendJSONData(res, data);
 	        });

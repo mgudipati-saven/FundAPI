@@ -8,7 +8,7 @@
   key => "fund.names"
   val => sorted set of fund names.
   e.g.=> "fund.names" => ['AC ONE China Fund, ...]
-  
+
   key => "fund.name:#{fname}:tickers".
   val => sorted set of fund tickers for the given fund name.
   e.g.=> "fund.name:Fidelity Magellan:tickers" => ['FMAGX']
@@ -164,13 +164,34 @@
 require 'csv'
 require 'redis'
 require 'json'
+require 'getoptlong'
+
+# call using "ruby load-basic-data.rb -i<input file>"  
+unless ARGV.length == 1
+  puts "Usage: ruby load-basic-data.rb -i<input file>" 
+  exit  
+end  
+  
+$infile = ''
+# specify the options we accept and initialize the option parser  
+opts = GetoptLong.new(  
+  [ "--infile", "-i", GetoptLong::REQUIRED_ARGUMENT ]
+)  
+
+# process the parsed options  
+opts.each do |opt, arg|  
+  case opt  
+    when '--infile'  
+      $infile = arg  
+  end  
+end
 
 $redisdb = Redis.new
+$redisdb.select 0
 
-$datafile = ARGV[0]
-if $datafile && File.exist?($datafile)
-  puts "Processing the fund basic data file: #{$datafile}..."
-	CSV.foreach($datafile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto) do |row|
+if $infile && File.exist?($infile)
+  puts "Processing the fund basic data file: #{$infile}..."
+	CSV.foreach($infile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto) do |row|
 	  #print "#{row.size}=>"
 	  #p row
 	  if row[1] == "2"
@@ -350,32 +371,13 @@ if $datafile && File.exist?($datafile)
 	    end
 	  end
 	end # CSV.foreach
+end # if File.exist?($infile)
 
-	# create a sorted set of google suggestions for fund tickers
-  if $redisdb.exists("fund.tickers")
-      puts "Creating google suggestion list for fund tickers..."
-
-      arr = $redisdb.zrange "fund.tickers", 0, -1
-      arr.each do |ticker|
-        (1..(ticker.length)).each do |n|
-            prefix = ticker[0...n]
-            $redisdb.zadd "fund.tickers.auto.complete", 0, prefix
-        end
-        $redisdb.zadd "fund.tickers.auto.complete", 0, "#{ticker}*"
-      end
-  end
-
-	# create a sorted set of google suggestions for fund names
-  if $redisdb.exists("fund.names")
-      puts "Creating google suggestion list for fund names..."
-
-      arr = $redisdb.zrange "fund.names", 0, -1
-      arr.each do |name|
-        (1..(name.length)).each do |n|
-            prefix = name[0...n]
-            $redisdb.zadd "fund.names.auto.complete", 0, prefix
-        end
-        $redisdb.zadd "fund.names.auto.complete", 0, "#{name}*"
-      end
-  end
-end # if File.exist?($datafile)
+=begin rdoc
+ * Name: load-basic-data.rb
+ * Description: Loads fund basic data file into redis db.
+ * Call using "ruby load-basic-data.rb -i, --infile=<fund basic file>"  
+ * Author: Murthy Gudipati
+ * Date: 07-Feb-2011
+ * License: Saven Technologies Inc.
+=end
