@@ -316,16 +316,27 @@ http.createServer(function (req, res) {
       	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
         var metric = "Yr1TotalReturns";
         
-        if ((uri.query.param == "Yr1")) {
-          metric = "Yr1TotalReturns";
-        } else if ((uri.query.param == "Yr3")) {
+        switch (uri.query.param) {
+          default:
+          case 'Yr1':
+            metric = "Yr1TotalReturns";
+          break;
+          
+          case 'Yr3':
             metric = "Yr3TotalReturns";
-        } else if ((uri.query.param == "Yr5")) {
+          break;
+          
+          case 'Yr5':
             metric = "Yr5TotalReturns";
-        } else if ((uri.query.param == "Yr10")) {
+          break;
+          
+          case 'Yr10':
             metric = "Yr10TotalReturns";
-        } else if ((uri.query.param == "Life")) {
+          break;
+          
+          case 'Life':
             metric = "LifeTotalReturns";
+          break;
         }
         
       	var dbkey = "fund.tickers";
@@ -485,12 +496,19 @@ http.createServer(function (req, res) {
 
     	case 'profile':
     		// funds?cmd=profile&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":profile";
+			  var dbkey = "fund:"+uri.query.ticker+":profile";
 
 		    redisdb.select(0, function(reply) {
 	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
+	          if (data == null || data.length == 0) {
+	            // try etf ticker
+	            dbkey = "etf:"+uri.query.ticker+":profile";
+    	        redisdb.hgetall(dbkey, function(err, data) {
+                sendJSONData(res, data);
+              });
+	          } else {
+              sendJSONData(res, data);
+	          }
 	        });
 			  });
 	  	break;
