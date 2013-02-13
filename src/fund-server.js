@@ -643,6 +643,16 @@ http.createServer(function (req, res) {
           });
   	  	break;
 
+      	case 'searchByComponent':
+      		// etfs.json?cmd=searchByComponent&ticker=SPY
+      		var ticker = uri.query.ticker;
+		      var dbkey = ticker+":etf.tickers";
+
+          redisdb.zrange(dbkey, 0, -1, function(err, data) {
+            sendJSONData(res, data);
+          });
+  	  	break;
+
   	  	default:
           data = ["Command '"+cmd+"' Not Found"];
           sendJSONData(res, data);

@@ -5,6 +5,10 @@
   val => sorted set of etf tickers.
   e.g.=> "etf.tickers" => ['AAAAX', 'AAABX', ...]
 
+  key => "#{component}:etf.tickers"
+  val => sorted set of etf tickers that hold the given component.
+  e.g.=> "IBM:etf.tickers" => ['AAAAX', 'AAABX', ...]
+
   key => etf:#{fticker}:profile
   val => hashtable of fund profile related data elements.
           "TickerSymbol",
@@ -172,6 +176,10 @@ IO.foreach(infile) do |line|
         score = line[37..44]
         $redisdb.zadd setkey, score, json
       end
+
+      # throw into the #{component}:etf.tickers bucket...
+      dbkey = "#{hash['TickerSymbol']}:etf.tickers"
+      $redisdb.zadd dbkey, 0, fticker
     when '09' #File Trailer
       numrec += 1
       # Record Count...99,999,999 Includes Records 01, 02, 09
