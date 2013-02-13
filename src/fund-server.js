@@ -138,8 +138,8 @@ http.createServer(function (req, res) {
     var cmd = uri.query.cmd;
 
     switch (cmd) {
-      case 'listFundTickers':
-    	  //funds.json?cmd=listFundTickers
+      case 'tickers':
+    	  //funds.json?cmd=tickers
   	    dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
@@ -148,8 +148,8 @@ http.createServer(function (req, res) {
 				});
       break;
 
-      case 'listFundNames':
-    	  //funds.json?cmd=listFundNames
+      case 'names':
+    	  //funds.json?cmd=names
   	    dbkey = "fund.names";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
@@ -158,8 +158,8 @@ http.createServer(function (req, res) {
 				});
       break;
 
-      case 'listFundSponsors':
-    	  //funds.json?cmd=listFundSponsors
+      case 'sponsors':
+    	  //funds.json?cmd=sponsors
   	    dbkey = "fund.sponsors";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
@@ -168,8 +168,8 @@ http.createServer(function (req, res) {
 				});
       break;
       
-      case 'listPrimaryGroups':
-    	  //funds.json?cmd=listPrimaryGroups
+      case 'pgroups':
+    	  //funds.json?cmd=pgroups
   	    dbkey = "fund.primary.groups";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
@@ -178,8 +178,8 @@ http.createServer(function (req, res) {
 				});
       break;
 
-      case 'listSecondaryGroups':
-    	  //funds.json?cmd=listSecondaryGroups
+      case 'sgroups':
+    	  //funds.json?cmd=sgroups
   	    dbkey = "fund.secondary.groups";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
@@ -188,8 +188,8 @@ http.createServer(function (req, res) {
 				});
       break;
 
-      case 'listBenchmarkIndices':
-    	  //funds.json?cmd=listBenchmarkIndices
+      case 'benchmarks':
+    	  //funds.json?cmd=benchmarks
   	    dbkey = "fund.benchmark.indices";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
@@ -198,10 +198,10 @@ http.createServer(function (req, res) {
 				});
       break;
 
-      case 'getAutoCompletionList':
-      	//funds.json?cmd=getAutoCompletionList&ticker=FM
+      case 'complete':
+      	//funds.json?cmd=complete&ticker=FM
       	//OR
-      	//funds.json?cmd=getAutoCompletionList&name=Fidelity
+      	//funds.json?cmd=complete&name=Fidelity
       	var ticker = uri.query.ticker;
       	var name = uri.query.name;
     	
@@ -499,6 +499,7 @@ http.createServer(function (req, res) {
 			  var dbkey = "fund:"+uri.query.ticker+":profile";
 
 		    redisdb.select(0, function(reply) {
+		      // try mutual fund ticker
 	        redisdb.hgetall(dbkey, function(err, data) {
 	          if (data == null || data.length == 0) {
 	            // try etf ticker
@@ -578,7 +579,6 @@ http.createServer(function (req, res) {
     		} else if (name != null) {
           sendFundHoldings(res, name, 9);
     		}
-
 	  	break;
 
     	case 'alloc':
@@ -618,7 +618,37 @@ http.createServer(function (req, res) {
         sendJSONData(res, data);
 	  	break;
     } // switch (cmd)
-  } // if (uri.pathname === "/funds")
+  } else if (uri.pathname === "/etfs.json") {
+      var cmd = uri.query.cmd;
+
+      switch (cmd) {
+      	case 'profile':
+      		// etfs.json?cmd=profile&ticker=SPY
+  			  var dbkey = "etf:"+uri.query.ticker+":profile";
+
+  		    redisdb.select(0, function(reply) {
+  	        redisdb.hgetall(dbkey, function(err, data) {
+              sendJSONData(res, data);
+  	        });
+  			  });
+  	  	break;
+
+      	case 'components':
+      		// etfs.json?cmd=components&ticker=SPY
+      		var ticker = uri.query.ticker;
+		      var dbkey = "etf:"+ticker+":components";
+
+          redisdb.zrevrange(dbkey, 0, 9, function(err, data) {
+            sendJSONData(res, data);
+          });
+  	  	break;
+
+  	  	default:
+          data = ["Command '"+cmd+"' Not Found"];
+          sendJSONData(res, data);
+  	  	break;
+      }
+  }
   else {
     util.loadStaticFile(uri.pathname, res);
   }
