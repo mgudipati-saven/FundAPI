@@ -77,12 +77,12 @@ $redisdb.select 0
   02ALX            0147521090002011062400000013WREI           18383M472002
   ...
 =end
-fticker = ''
 numrec = 0
 IO.foreach(infile) do |line|
   line.chomp!
   case line[0..1]
     when '01' #Basket Header
+      #01WREI           18383M47200220110624000000950005000000000000000291+0000000000000+0000162471058+0000000003249+0000000004503+0000005000000000000000000+
       numrec += 1
 
       #Index Receipt Symbol...Trading Symbol
@@ -142,14 +142,15 @@ IO.foreach(infile) do |line|
                               "CashIndicator", line[150]
       end
     when '02' #Basket Component Detail
+      #02AKR            0042391090002011062400000193WREI           18383M472002
       numrec += 1
      
       hash = {
-        #Component CUSIP...S&P assigned CUSIP
-        "CUSIP" => line[17..25].strip,
-
         #Component Symbol...Trading Symbol
         "TickerSymbol" => line[2..16].strip,
+
+        #Component CUSIP...S&P assigned CUSIP
+        "CUSIP" => line[17..25].strip,
 
         #When Issued Indicator...0 = Regular Way 1 = When Issued
         "WhenIssuedIndicator" => line[26],
@@ -167,19 +168,22 @@ IO.foreach(infile) do |line|
         "ShareQuantity" => line[37..44].to_i,
 
         #New Security Indicator...N = New CUSIP Space = Old CUSIP
-        "NewSecurityIndicator" => line[71]
+        "NewSecurityIndicator" => line[72]
         }
 
+      fticker = line[45..59].strip
       if fticker
         json = JSON.generate hash
         setkey = "etf:#{fticker}:components"
-        score = line[37..44]
+        score = hash['ShareQuantity']
         $redisdb.zadd setkey, score, json
       end
 
       # throw into the #{component}:etf.tickers bucket...
-      dbkey = "#{hash['TickerSymbol']}:etf.tickers"
-      $redisdb.zadd dbkey, 0, fticker
+      if hash['TickerSymbol'] != ''
+        dbkey = "#{hash['TickerSymbol']}:etf.tickers"
+        $redisdb.zadd dbkey, 0, fticker
+      end
     when '09' #File Trailer
       numrec += 1
       # Record Count...99,999,999 Includes Records 01, 02, 09
