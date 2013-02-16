@@ -31,3 +31,10 @@ elsif parsed['tickers']
     p ticker
   end
 end
+
+res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=searchByComponent')
+p res.body, res.code, res.message, res.headers.inspect
+parsed = JSON.parse(res.body)
+if parsed['errors']
+  p parsed['errors'][0]['code']
+end

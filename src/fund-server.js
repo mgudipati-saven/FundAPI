@@ -7,6 +7,7 @@ var http = require('http'),
 var errmsg = {};
 errmsg['10'] = {"message":"Command not found","code":10};
 errmsg['20'] = {"message":"Invalid parameter","code":20};
+errmsg['30'] = {"message":"Missing parameter","code":30};
 
 // redis connection
 var redisdb = redis.createClient();
@@ -651,12 +652,18 @@ http.createServer(function (req, res) {
       	case 'searchByComponent':
       		// etfs.json?cmd=searchByComponent&ticker=IBM
       		var ticker = uri.query.ticker;
-		      var dbkey = ticker+":etf.tickers";
 
-          redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            var json = {'tickers': data};
-            sendJSONData(res, json);
-          });
+          if (ticker == null) {
+            data = {"errors":[errmsg['30']]};
+            sendJSONData(res, data);
+          } else {
+  		      var dbkey = ticker+":etf.tickers";
+
+            redisdb.zrange(dbkey, 0, -1, function(err, data) {
+              var json = {'tickers': data};
+              sendJSONData(res, json);
+            });
+          }
   	  	break;
 
   	  	default:
