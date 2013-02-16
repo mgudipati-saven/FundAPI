@@ -1,11 +1,15 @@
 var http = require('http'),
     url = require('url'),
     redis = require('redis'),
-    util = require('./util'),
-    
-    // redis connection
-    redisdb = redis.createClient();
+    util = require('./util');
 
+// error codes and messages
+var errmsg = {};
+errmsg['10'] = {"message":"Command not found","code":10};
+errmsg['20'] = {"message":"Invalid parameter","code":20};
+
+// redis connection
+var redisdb = redis.createClient();
 redisdb.on("error", function (err) {
   console.log("Redis Error " + err);
 });
@@ -614,7 +618,7 @@ http.createServer(function (req, res) {
 	  	break;
 	  	
 	  	default:
-        data = ["Command '"+cmd+"' Not Found"];
+        data = {"errors":[{"message":"Sorry, that page does not exist","code":34}]};
         sendJSONData(res, data);
 	  	break;
     } // switch (cmd)
@@ -639,22 +643,24 @@ http.createServer(function (req, res) {
 		      var dbkey = "etf:"+ticker+":components";
 
           redisdb.zrevrange(dbkey, 0, 9, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'components': data};
+            sendJSONData(res, json);
           });
   	  	break;
 
       	case 'searchByComponent':
-      		// etfs.json?cmd=searchByComponent&ticker=SPY
+      		// etfs.json?cmd=searchByComponent&ticker=IBM
       		var ticker = uri.query.ticker;
 		      var dbkey = ticker+":etf.tickers";
 
           redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'tickers': data};
+            sendJSONData(res, json);
           });
   	  	break;
 
   	  	default:
-          data = ["Command '"+cmd+"' Not Found"];
+          data = {"errors":[errmsg['10']]};
           sendJSONData(res, data);
   	  	break;
       }
