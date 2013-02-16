@@ -629,24 +629,36 @@ http.createServer(function (req, res) {
       switch (cmd) {
       	case 'profile':
       		// etfs.json?cmd=profile&ticker=SPY
-  			  var dbkey = "etf:"+uri.query.ticker+":profile";
+      		var ticker = uri.query.ticker;
 
-  		    redisdb.select(0, function(reply) {
-  	        redisdb.hgetall(dbkey, function(err, data) {
-              sendJSONData(res, data);
-  	        });
-  			  });
+          if (ticker == null) {
+            data = {"errors":[errmsg['30']]};
+            sendJSONData(res, data);
+          } else {
+    			  var dbkey = "etf:"+ticker+":profile";
+    		    redisdb.select(0, function(reply) {
+    	        redisdb.hgetall(dbkey, function(err, data) {
+                var json = {'profile': data};
+                sendJSONData(res, json);
+    	        });
+    			  });
+  			  }
   	  	break;
 
       	case 'components':
       		// etfs.json?cmd=components&ticker=SPY
       		var ticker = uri.query.ticker;
-		      var dbkey = "etf:"+ticker+":components";
-
-          redisdb.zrevrange(dbkey, 0, 9, function(err, data) {
-            var json = {'components': data};
-            sendJSONData(res, json);
-          });
+          
+          if (ticker == null) {
+            data = {"errors":[errmsg['30']]};
+            sendJSONData(res, data);
+          } else {
+  		      var dbkey = "etf:"+ticker+":components";
+            redisdb.zrevrange(dbkey, 0, 9, function(err, data) {
+              var json = {'components': data};
+              sendJSONData(res, json);
+            });
+          }
   	  	break;
 
       	case 'searchByComponent':
@@ -658,7 +670,6 @@ http.createServer(function (req, res) {
             sendJSONData(res, data);
           } else {
   		      var dbkey = ticker+":etf.tickers";
-
             redisdb.zrange(dbkey, 0, -1, function(err, data) {
               var json = {'tickers': data};
               sendJSONData(res, json);
