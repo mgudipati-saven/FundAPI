@@ -1,3 +1,9 @@
+http://127.0.0.1:8080/funds.json?cmd=tickers
+http://127.0.0.1:8080/funds.json?cmd=names
+http://127.0.0.1:8080/funds.json?cmd=sponsors
+http://127.0.0.1:8080/funds.json?cmd=sgroups
+http://127.0.0.1:8080/funds.json?cmd=pgroups
+http://127.0.0.1:8080/funds.json?cmd=benchmarks
 http://127.0.0.1:8080/funds.json?cmd=returns&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=basics&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=sponsor&ticker=FMAGX
@@ -6,20 +12,14 @@ http://127.0.0.1:8080/funds.json?cmd=managers&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=ratios&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=fees&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=hist&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=holdings&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=holdings&name=Fidelity Magellan Fund
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&name=Fidelity Magellan Fund
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&name=Fidelity Magellan Fund
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&name=MainStay Intermediate Term Bond Fund
-http://127.0.0.1:8080/funds.json?cmd=holdings&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&ticker=MTMAX
-http://127.0.0.1:8080/funds.json?cmd=benchmarks
-http://127.0.0.1:8080/funds.json?cmd=sgroups
-http://127.0.0.1:8080/funds.json?cmd=pgroups
-http://127.0.0.1:8080/funds.json?cmd=sponsors
-http://127.0.0.1:8080/funds.json?cmd=names
-http://127.0.0.1:8080/funds.json?cmd=tickers
 http://127.0.0.1:8080/etfs.json?cmd=components&ticker=SPY
 http://127.0.0.1:8080/etfs.json?cmd=profile&ticker=SPY
 

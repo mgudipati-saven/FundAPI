@@ -29,14 +29,28 @@ function sendJSONData(res, data) {
 /*
  * sendFundHoldings(res, name, n):
  *  sends top <n> fund holdings data.
- *  
+ *  {
+      'holdings': [
+          {
+            'HoldingCompany':'Applied Materials, Inc.',
+            'HoldingValue':1098001000
+          },
+          {
+            'HoldingCompany':'Nokia Corp. sponsored ADR',
+            'HoldingValue':1078759000
+          },
+          ...
+          ...
+        ]
+    }
  * @param       res   response channel
  * @param       name  fund name
  * @param       n     number of holdings
  * @access      public
  */ 
 function sendFundHoldings(res, name, n) {
-  // select redis db instance no. 1
+  var json = {'holdings':[]};
+  
   redisdb.select(0, function(reply) {
     // obtain the latest holdings date
     var dbkey = "fund:"+name+":holdings:dates";
@@ -45,10 +59,11 @@ function sendFundHoldings(res, name, n) {
         if (dates.length != 0 && dates[0] != null) {
           dbkey = "fund:"+name+":holdings:"+dates[0];
           redisdb.zrevrange(dbkey, 0, n, function(err, data) {
-            sendJSONData(res, data);
+            json['holdings'] = data;
+            sendJSONData(res, json);
           });
         } else {
-          sendJSONData(res, []);
+          sendJSONData(res, json);
         }
       });
     }
@@ -650,6 +665,9 @@ http.createServer(function (req, res) {
   			  });
     		} else if (name != null) {
           sendFundHoldings(res, name, 9);
+    		} else {
+    		  data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);		      
     		}
 	  	break;
 

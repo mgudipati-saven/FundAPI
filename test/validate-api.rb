@@ -280,3 +280,39 @@ if parsed['errors'] and parsed['errors'][0]['code'] == 30
 else
   puts "failed"
 end
+
+print "valid fund holdings command given a fund ticker test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=holdings&ticker=FMAGX')
+parsed = JSON.parse(res.body)
+if parsed['holdings']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund holdings command given a fund name test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=holdings&name=Fidelity%20Magellan%20Fund')
+parsed = JSON.parse(res.body)
+if parsed['holdings']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund holdings command given a non-existent fund test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=holdings&name=Fidelity')
+parsed = JSON.parse(res.body)
+if parsed['holdings']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "invalid fund holdings command with missing param test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=holdings')
+parsed = JSON.parse(res.body)
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
+end
