@@ -5,7 +5,7 @@ var http = require('http'),
 
 // error codes and messages
 var errmsg = {};
-errmsg['10'] = {"message":"Command not found","code":10};
+errmsg['10'] = {"message":"Invalid command","code":10};
 errmsg['20'] = {"message":"Invalid parameter","code":20};
 errmsg['30'] = {"message":"Missing parameter","code":30};
 

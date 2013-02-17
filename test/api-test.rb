@@ -2,66 +2,65 @@
 require 'httparty'
 require 'json'
 
-res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=cmdnotfound&ticker=SPY')
-p res.body, res.code, res.message, res.headers.inspect
+print "invalid command test..."
+res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=invalid&ticker=SPY')
 parsed = JSON.parse(res.body)
-p parsed
-if parsed['errors']
-  p parsed['errors'][0]['code']
+if parsed['errors'] and parsed['errors'][0]['code'] == 10
+  puts "passed"
+else
+  puts "failed"
 end
 
+print "valid components command test..."
 res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=components&ticker=SPY')
-p res.body, res.code, res.message, res.headers.inspect
 parsed = JSON.parse(res.body)
-p parsed
-if parsed['errors']
-  p parsed['errors'][0]['code']
-elsif parsed['components']
-  parsed['components'].each do |comp|
-    hash = JSON.parse(comp)
-    p hash['TickerSymbol'], hash  ['ShareQuantity']
-  end
+if parsed['components']
+  puts "passed"
+else
+  puts "failed"
 end
 
+print "invalid components command with missing param test..."
 res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=components')
-p res.body, res.code, res.message, res.headers.inspect
 parsed = JSON.parse(res.body)
-p parsed
-if parsed['errors']
-  p parsed['errors'][0]['code']
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
 end
 
+print "valid searchByComponent command test..."
 res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=searchByComponent&ticker=IBM')
-p res.body, res.code, res.message, res.headers.inspect
 parsed = JSON.parse(res.body)
-p parsed
-if parsed['errors']
-  p parsed['errors'][0]['code']
-elsif parsed['tickers']
-  parsed['tickers'].each do |ticker|
-    p ticker
-  end
+if parsed['tickers']
+  puts "passed"
+else
+  puts "failed"
 end
 
+print "invalid searchByComponent command with missing param test..."
 res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=searchByComponent')
-p res.body, res.code, res.message, res.headers.inspect
 parsed = JSON.parse(res.body)
-if parsed['errors']
-  p parsed['errors'][0]['code']
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
 end
 
+print "valid profile command test..."
 res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=profile&ticker=SPY')
-p res.body, res.code, res.message, res.headers.inspect
 parsed = JSON.parse(res.body)
-p parsed
 if parsed['profile']
-  p parsed['profile']['CUSIP']
+  puts "passed"
+else
+  puts "failed"
 end
 
+print "invalid profile command with missing param test..."
 res = HTTParty.get('http://127.0.0.1:8080/etfs.json?cmd=profile')
-p res.body, res.code, res.message, res.headers.inspect
 parsed = JSON.parse(res.body)
-p parsed
-if parsed['errors']
-  p parsed['errors'][0]['code']
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
 end
