@@ -58,6 +58,46 @@ function sendFundHoldings(res, name, n) {
 /*
  * sendFundAllocation(res, name, type):
  *  sends fund allocation data - asset, sector, geography.
+ *  {
+      'alloc': {
+        'asset': [
+          {
+            'Asset':'Common Stocks',
+            'Allocation':94.2
+          },
+          {
+            'Asset':'Money Market Funds',
+            'Allocation':3.2
+          },
+          ...
+          ...
+        ],
+        'sector': [
+          {
+            'Sector':'Telecommunications',
+            'Allocation':4.2
+          },
+          {
+            'Sector':'Utilities',
+            'Allocation':3.2
+          },
+          ...
+          ...
+        ],
+        'geo': [
+          {
+            'Country':'United States of America',
+            'Allocation':94.2
+          },
+          {
+            'Country':'Switzerland',
+            'Allocation':3.2
+          },
+          ...
+          ...
+        ]
+      }
+    }
  *  
  * @param       res   response channel
  * @param       name  fund name
@@ -66,6 +106,7 @@ function sendFundHoldings(res, name, n) {
  */ 
 function sendFundAllocation(res, name, type) {
   var dbkey = null;
+  var json = {'alloc':{}};
   
   switch (type) {
     case 'asset':
@@ -86,10 +127,12 @@ function sendFundAllocation(res, name, type) {
     redisdb.zrevrange(dbkey+"dates", 0, -1, function(err, dates) {
       if (dates.length != 0 && dates[0] != null) {
         redisdb.zrevrange(dbkey+dates[0], 0, -1, function(err, data) {
-          sendJSONData(res, data);
+          json['alloc'][type] = data;
+          sendJSONData(res, json);
         });
       } else {
-        sendJSONData(res, []);
+        json['alloc'][type] = [];
+        sendJSONData(res, json);
       }
     });
   });
@@ -617,8 +660,11 @@ http.createServer(function (req, res) {
     		var name = uri.query.name,
 		        ticker = uri.query.ticker,
 		        type = uri.query.type;
-		        
-    		if (ticker != null) {
+
+		    if ((ticker == null && name == null) || type == null) {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);		      
+		    } else if (ticker != null) {
   		    redisdb.select(0, function(reply) {
   		      var dbkey = "fund:"+ticker+":basics";
   		      redisdb.hget(dbkey, "Name", function(err, data) {

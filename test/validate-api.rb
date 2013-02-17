@@ -181,3 +181,102 @@ if parsed['errors'] and parsed['errors'][0]['code'] == 30
 else
   puts "failed"
 end
+
+print "valid fund asset alloc command given a fund name test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&name=Fidelity%20Magellan%20Fund')
+parsed = JSON.parse(res.body)
+if parsed['alloc']['asset']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund sector alloc command given a fund name test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&name=Fidelity%20Magellan%20Fund')
+parsed = JSON.parse(res.body)
+if parsed['alloc']['sector']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund geography alloc command given a fund name test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&name=Fidelity%20Magellan%20Fund')
+parsed = JSON.parse(res.body)
+if parsed['alloc']['geo']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund asset alloc command given a fund ticker test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=asset&ticker=FMAGX')
+parsed = JSON.parse(res.body)
+if parsed['alloc']['asset']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund sector alloc command given a fund ticker test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=sector&ticker=FMAGX')
+parsed = JSON.parse(res.body)
+if parsed['alloc']['sector']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "valid fund geography alloc command given a fund ticker test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo&ticker=FMAGX')
+parsed = JSON.parse(res.body)
+if parsed['alloc']['geo']
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "invalid fund alloc command with missing type, ticker and name params test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc')
+parsed = JSON.parse(res.body)
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "invalid fund alloc command with missing ticker and name params test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&type=geo')
+parsed = JSON.parse(res.body)
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "invalid fund alloc command with missing ticker and type params test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&name=Fidelity%20Magellan%20Fund')
+parsed = JSON.parse(res.body)
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "invalid fund alloc command with missing type and name params test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&ticker=FMAGX')
+parsed = JSON.parse(res.body)
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
+end
+
+print "invalid fund alloc command with missing just the type param test..."
+res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=alloc&ticker=FMAGX&name=Fidelity%20Magellan%20Fund')
+parsed = JSON.parse(res.body)
+if parsed['errors'] and parsed['errors'][0]['code'] == 30
+  puts "passed"
+else
+  puts "failed"
+end
