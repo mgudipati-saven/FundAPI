@@ -4,8 +4,8 @@ http://127.0.0.1:8080/funds.json?cmd=sponsors
 http://127.0.0.1:8080/funds.json?cmd=sgroups
 http://127.0.0.1:8080/funds.json?cmd=pgroups
 http://127.0.0.1:8080/funds.json?cmd=benchmarks
-http://127.0.0.1:8080/funds.json?cmd=returns&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=basics&ticker=FMAGX
+http://127.0.0.1:8080/funds.json?cmd=returns&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=sponsor&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=profile&ticker=FMAGX
 http://127.0.0.1:8080/funds.json?cmd=managers&ticker=FMAGX

@@ -181,12 +181,10 @@ function sendGoogleSuggestionList(res, dbkey, prefix) {
               results.push(entry.substr(0, entry.length-1));
             }
           }
-          var json = {'results':results}
-          sendJSONData(res, json);
+          sendJSONData(res, {'results':results});
         });
       } else {
-        var json = {'results':[]}
-        sendJSONData(res, json);
+        sendJSONData(res, {'results':[]});
       }
     });
   });
@@ -298,11 +296,10 @@ http.createServer(function (req, res) {
       	var name = uri.query.name;
 
       	if (name != null) {
-    	    dbkey = "fund.name:"+name+":tickers";
   				redisdb.select(0, function(reply) {				
+      	    var dbkey = "fund.name:"+name+":tickers";
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              var json = {'tickers': data};
-              sendJSONData(res, json);
+              sendJSONData(res, {'tickers': data});
   					});
   				});
         } else {
@@ -313,37 +310,52 @@ http.createServer(function (req, res) {
         
       case 'searchByPrimaryGroup':
     	  // funds?cmd=searchByPrimaryGroup&pgrp=US Equity
-    	  if (uri.query.pgrp != null) {
-  	      dbkey = "fund.primary.group:"+uri.query.pgrp+":tickers";
+        var pgrp = uri.query.pgrp;
+        
+    	  if (pgrp != null) {
   				redisdb.select(0, function(reply) {				
+    	      var dbkey = "fund.primary.group:"+pgrp+":tickers";
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              sendJSONData(res, data);
+              sendJSONData(res, {'tickers': data});
   					});
   				});
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
         }
       break;
 
       case 'searchBySecondaryGroup':
     	  // funds?cmd=searchBySecondaryGroup&sgrp=Utilities
-    	  if (uri.query.sgrp != null) {
-  	      dbkey = "fund.secondary.group:"+uri.query.sgrp+":tickers";
+        var sgrp = uri.query.sgrp;
+
+    	  if (sgrp != null) {
   				redisdb.select(0, function(reply) {				
+    	      var dbkey = "fund.secondary.group:"+sgrp+":tickers";
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              sendJSONData(res, data);
+              sendJSONData(res, {'tickers': data});
   					});
   				});
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
         }
       break;
 
       case 'searchByBenchmarkIndex':
       	// funds?cmd=searchByBenchmarkIndex&bindex=S&P 500
-      	if (uri.query.bindex != null) {
-    	    dbkey = "fund.benchmark.index:"+uri.query.bindex+":tickers";
+        var bindex = uri.query.bindex;
+
+      	if (bindex != null) {
   				redisdb.select(0, function(reply) {				
+      	    var dbkey = "fund.benchmark.index:"+uri.query.bindex+":tickers";
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              sendJSONData(res, data);
+              sendJSONData(res, {'tickers': data});
   					});
   				});
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
         }
       break;
       
@@ -351,8 +363,8 @@ http.createServer(function (req, res) {
       	// funds?cmd=searchByLoadType&type=Y
         var type = (uri.query.type == null) ? "N" : uri.query.type;
         
-      	var dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
+        	var dbkey = "fund.tickers";
 					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
             var arr = [];
             var multi = redisdb.multi();
@@ -365,7 +377,7 @@ http.createServer(function (req, res) {
               });
             });
             multi.exec(function (err, replies) {
-              sendJSONData(res, arr);
+              sendJSONData(res, {'tickers': arr});
         		});
 					});
 				});
@@ -373,34 +385,39 @@ http.createServer(function (req, res) {
 
       case 'searchByInitialInvestment':
       	// funds?cmd=searchByInitialInvestment&lt=2500
-      	var startr = (uri.query.gt == null) ? 0 : uri.query.gt;
-      	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
+      	var startr = (uri.query.gt == null) ? 0 : parseInt(uri.query.gt);
+      	var endr = (uri.query.lt == null) ? 1000000000 : parseInt(uri.query.lt);
         
-      	var dbkey = "fund.tickers";
-				redisdb.select(0, function(reply) {				
-					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
-            var arr = [];
-            var multi = redisdb.multi();
-            tickers.forEach(function(ticker, pos) {
-              dbkey = "fund:"+ticker+":profile";
-              multi.hget(dbkey, "InitialInvestment", function(err, data) {
-                var amt = parseInt(data);
-                if (amt > startr && amt <= endr) {
-                  arr.push(ticker);
-                }
+        if (isNaN(startr) || isNaN(endr)) {
+          data = {"errors":[errmsg['InvalidParam']]};
+          sendJSONData(res, data);
+        } else {
+  				redisdb.select(0, function(reply) {				
+          	var dbkey = "fund.tickers";
+  					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+              var arr = [];
+              var multi = redisdb.multi();
+              tickers.forEach(function(ticker, pos) {
+                dbkey = "fund:"+ticker+":profile";
+                multi.hget(dbkey, "InitialInvestment", function(err, data) {
+                  var amt = parseInt(data);
+                  if (amt > startr && amt <= endr) {
+                    arr.push(ticker);
+                  }
+                });
               });
-            });
-            multi.exec(function (err, replies) {
-              sendJSONData(res, arr);
-        		});
-					});
-				});
+              multi.exec(function (err, replies) {
+                sendJSONData(res, {'tickers': arr});
+          		});
+  					});
+  				});
+        }
       break;
 
       case 'searchByReturns':
       	// funds?cmd=searchByReturns&param=Yr1&lt=25
-      	var startr = (uri.query.gt == null) ? -Infinity : uri.query.gt;
-      	var endr = (uri.query.lt == null) ? Infinity : uri.query.lt;
+      	var startr = (uri.query.gt == null) ? -1000 : parseFloat(uri.query.gt);
+      	var endr = (uri.query.lt == null) ? 1000 : parseFloat(uri.query.lt);
         var metric = "Yr1TotalReturns";
         
         switch (uri.query.param) {
@@ -426,32 +443,37 @@ http.createServer(function (req, res) {
           break;
         }
         
-      	var dbkey = "fund.tickers";
-				redisdb.select(0, function(reply) {				
-					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
-            var arr = [];
-            var multi = redisdb.multi();
-            tickers.forEach(function(ticker, pos) {
-              dbkey = "fund:"+ticker+":returns";
-              multi.hget(dbkey, metric, function(err, data) {
-                var amt = parseFloat(data);
-                if (amt > startr && amt <= endr) {
-                  arr.push(ticker);
-                }
+        if (isNaN(startr) || isNaN(endr)) {
+          data = {"errors":[errmsg['InvalidParam']]};
+          sendJSONData(res, data);
+        } else {
+  				redisdb.select(0, function(reply) {				
+          	var dbkey = "fund.tickers";
+  					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+              var arr = [];
+              var multi = redisdb.multi();
+              tickers.forEach(function(ticker, pos) {
+                dbkey = "fund:"+ticker+":returns";
+                multi.hget(dbkey, metric, function(err, data) {
+                  var amt = parseFloat(data);
+                  if (amt > startr && amt <= endr) {
+                    arr.push(ticker);
+                  }
+                });
               });
-            });
-            multi.exec(function (err, replies) {
-              sendJSONData(res, arr);
-        		});
-					});
-				});
+              multi.exec(function (err, replies) {
+                sendJSONData(res, {'tickers': arr});
+          		});
+  					});
+  				});
+        }
       break;
 
       case 'searchByRatios':
       	// funds?cmd=searchByRatios&param=Turnover&lt=25
-      	var startr = (uri.query.gt == null) ? 0.0 : uri.query.gt;
-      	var endr = (uri.query.lt == null) ? 100.0 : uri.query.lt;
-        var metric = "Turnover";
+      	var startr = (uri.query.gt == null) ? 0.0 : parseFloat(uri.query.gt);
+      	var endr = (uri.query.lt == null) ? 100.0 : parseFloat(uri.query.lt);
+        var metric = null;
         
         switch (uri.query.param) {
           case 'Turnover':
@@ -459,29 +481,37 @@ http.createServer(function (req, res) {
             break;
             
           case 'ExpenseRatio':
-          default:
             metric = "TotalExpenseRatio";
             break;
         }
         
-      	var dbkey = "fund.tickers";
-				redisdb.select(0, function(reply) {				
-					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
-            var arr = [];
-            var multi = redisdb.multi();
-            tickers.forEach(function(ticker, pos) {
-              dbkey = "fund:"+ticker+":ratios";
-              multi.hget(dbkey, metric, function(err, ratio) {
-                if (ratio > startr && ratio <= endr) {
-                  arr.push(ticker);
-                }
+        if (uri.query.param == null) {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        } else if (isNaN(startr) || isNaN(endr) || metric == null) {
+          data = {"errors":[errmsg['InvalidParam']]};
+          sendJSONData(res, data);
+        } else {
+  				redisdb.select(0, function(reply) {				
+          	var dbkey = "fund.tickers";
+  					redisdb.zrange(dbkey, 0, -1, function(err, tickers) {
+              var arr = [];
+              var multi = redisdb.multi();
+              tickers.forEach(function(ticker, pos) {
+                dbkey = "fund:"+ticker+":ratios";
+                multi.hget(dbkey, metric, function(err, data) {
+                  var ratio = parseFloat(data);
+                  if (ratio > startr && ratio <= endr) {
+                    arr.push(ticker);
+                  }
+                });
               });
-            });
-            multi.exec(function (err, replies) {
-              sendJSONData(res, arr);
-        		});
-					});
-				});
+              multi.exec(function (err, replies) {
+                sendJSONData(res, {'tickers': arr});
+          		});
+  					});
+  				});
+        }
       break;
 
       case 'advsearch':
@@ -547,106 +577,170 @@ http.createServer(function (req, res) {
       
     	case 'basics':
     		// funds?cmd=basics&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-            dbkey = "fund:"+ticker+":basics";
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-		    });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+            var dbkey = "fund:"+ticker+":basics";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'basics':{}};
+  	          if (data != null) {
+  	            json['basics'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  		    });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
   	  break;
 
     	case 'returns':
     		// funds?cmd=returns&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":returns";
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+			      var dbkey = "fund:"+ticker+":returns";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'returns':{}};
+  	          if (data != null) {
+  	            json['returns'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'sponsor':
     		// funds?cmd=sponsor&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":sponsor";
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+			      var dbkey = "fund:"+ticker+":sponsor";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'sponsor':{}};
+  	          if (data != null) {
+  	            json['sponsor'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'profile':
     		// funds?cmd=profile&ticker=FMAGX
-			  var dbkey = "fund:"+uri.query.ticker+":profile";
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-		      // try mutual fund ticker
-	        redisdb.hgetall(dbkey, function(err, data) {
-	          if (data == null || data.length == 0) {
-	            // try etf ticker
-	            dbkey = "etf:"+uri.query.ticker+":profile";
-    	        redisdb.hgetall(dbkey, function(err, data) {
-                sendJSONData(res, data);
-              });
-	          } else {
-              sendJSONData(res, data);
-	          }
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+    			  var dbkey = "fund:"+ticker+":profile";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'profile':{}};
+  	          if (data != null) {
+  	            json['profile'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'managers':
     		// funds?cmd=managers&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":managers";
+    		// {'managers':{'ManagerName1':'Jeffrey Feingold', 'ManagerTenure1':'September 2011', ...}}
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+  		      var dbkey = "fund:"+ticker+":managers";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'managers':{}};
+  	          if (data != null) {
+  	            json['managers'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'ratios':
     		// funds?cmd=ratios&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":ratios";
+    		// {'ratios':{'TotalExpenseRatio':0.5, ...}}
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+  		      var dbkey = "fund:"+ticker+":ratios";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'ratios':{}};
+  	          if (data != null) {
+  	            json['ratios'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'fees':
     		// funds?cmd=fees&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":fees";
+    		// {'fees': {'ManagementFees':0.35, 'b12-1Fee':0.1, ...}}
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.hgetall(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+  		      var dbkey = "fund:"+ticker+":fees";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          var json = {'fees':{}};
+  	          if (data != null) {
+  	            json['fees'] = data;
+  	          }
+              sendJSONData(res, json);
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'hist':
     		// funds?cmd=hist&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "fund:"+ticker+":hist";
+    		// {'history': [{'Date':'2007-03-31', 'TotalNetAssets':'43155000000', ...}, ...]}
+    		var ticker = uri.query.ticker;
 
-		    redisdb.select(0, function(reply) {
-	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+        if (ticker != null) {
+  		    redisdb.select(0, function(reply) {
+			      var dbkey = "fund:"+ticker+":hist";
+  	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
+              sendJSONData(res, {'history':data});
+  	        });
+  			  });
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+        }
 	  	break;
 
     	case 'holdings':
@@ -731,17 +825,20 @@ http.createServer(function (req, res) {
       		// {"profile":{"CUSIP":123456789, ...}}
       		var ticker = uri.query.ticker;
 
-          if (ticker == null) {
-            data = {"errors":[errmsg['MissingParam']]};
-            sendJSONData(res, data);
-          } else {
+          if (ticker != null) {
     			  var dbkey = "etf:"+ticker+":profile";
     		    redisdb.select(0, function(reply) {
     	        redisdb.hgetall(dbkey, function(err, data) {
-                var json = {'profile': data};
+    	          var json = {'profile':{}};
+    	          if (data != null) {
+    	            json['profile'] = data;
+    	          }
                 sendJSONData(res, json);
     	        });
     			  });
+          } else {
+            data = {"errors":[errmsg['MissingParam']]};
+            sendJSONData(res, data);
   			  }
   	  	break;
 
@@ -750,15 +847,17 @@ http.createServer(function (req, res) {
       		// {"components":[{"TickerSymbol":"IBM"}, {"ShareQuantity":10000}, ...]}
       		var ticker = uri.query.ticker;
           
-          if (ticker == null) {
+          if (ticker != null) {
+  		      var dbkey = "etf:"+ticker+":components";
+    		    redisdb.select(0, function(reply) {
+              redisdb.zrevrange(dbkey, 0, 9, function(err, data) {
+                var json = {'components': data};
+                sendJSONData(res, json);
+              });
+    			  });
+          } else {
             data = {"errors":[errmsg['MissingParam']]};
             sendJSONData(res, data);
-          } else {
-  		      var dbkey = "etf:"+ticker+":components";
-            redisdb.zrevrange(dbkey, 0, 9, function(err, data) {
-              var json = {'components': data};
-              sendJSONData(res, json);
-            });
           }
   	  	break;
 
@@ -767,15 +866,17 @@ http.createServer(function (req, res) {
       		// {"tickers":["SPY", "AAA", ...]}
       		var ticker = uri.query.ticker;
 
-          if (ticker == null) {
+          if (ticker != null) {
+    		    redisdb.select(0, function(reply) {
+  		      var dbkey = ticker+":etf.tickers";
+              redisdb.zrange(dbkey, 0, -1, function(err, data) {
+                var json = {'tickers': data};
+                sendJSONData(res, json);
+              });
+    			  });
+          } else {
             data = {"errors":[errmsg['MissingParam']]};
             sendJSONData(res, data);
-          } else {
-  		      var dbkey = ticker+":etf.tickers";
-            redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              var json = {'tickers': data};
-              sendJSONData(res, json);
-            });
           }
   	  	break;
 
