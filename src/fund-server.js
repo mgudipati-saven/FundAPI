@@ -5,9 +5,9 @@ var http = require('http'),
 
 // error codes and messages
 var errmsg = {};
-errmsg['10'] = {"message":"Invalid command","code":10};
-errmsg['20'] = {"message":"Invalid parameter","code":20};
-errmsg['30'] = {"message":"Missing parameter","code":30};
+errmsg['InvalidCommand'] = {"message":"Invalid command","code":10};
+errmsg['InvalidParam'] = {"message":"Invalid parameter","code":20};
+errmsg['MissingParam'] = {"message":"Missing parameter","code":30};
 
 // redis connection
 var redisdb = redis.createClient();
@@ -123,10 +123,12 @@ function sendGoogleSuggestionList(res, dbkey, prefix) {
               results.push(entry.substr(0, entry.length-1));
             }
           }
-          sendJSONData(res, results);
+          var json = {'results':results}
+          sendJSONData(res, json);
         });
       } else {
-        sendJSONData(res, []);
+        var json = {'results':[]}
+        sendJSONData(res, json);
       }
     });
   });
@@ -144,69 +146,81 @@ http.createServer(function (req, res) {
 
     switch (cmd) {
       case 'tickers':
-    	  //funds.json?cmd=tickers
+    	  // funds.json?cmd=tickers
+    	  // {"tickers":["AAAAX", "AAABX", ...]}
   	    dbkey = "fund.tickers";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'tickers': data};
+            sendJSONData(res, json);
 					});
 				});
       break;
 
       case 'names':
-    	  //funds.json?cmd=names
+    	  // funds.json?cmd=names
+    	  // {"names":["Fidelity Magellan Fund", "Blackrock Fund", ...]}
   	    dbkey = "fund.names";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'names': data};
+            sendJSONData(res, json);
 					});
 				});
       break;
 
       case 'sponsors':
-    	  //funds.json?cmd=sponsors
+    	  // funds.json?cmd=sponsors
+  	    // {"sponsors":["Fidelity Magellan", "Blackrock", ...]}
   	    dbkey = "fund.sponsors";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'sponsors': data};
+            sendJSONData(res, json);
 					});
 				});
       break;
       
       case 'pgroups':
-    	  //funds.json?cmd=pgroups
+    	  // funds.json?cmd=pgroups
+    	  // {"pgroups":["US Equity", "Global Equity", ...]}
   	    dbkey = "fund.primary.groups";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'pgroups': data};
+            sendJSONData(res, json);
 					});
 				});
       break;
 
       case 'sgroups':
-    	  //funds.json?cmd=sgroups
+    	  // funds.json?cmd=sgroups
+        // {"sgroups":["Midcap", "Smallcap", ...]}
   	    dbkey = "fund.secondary.groups";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'sgroups': data};
+            sendJSONData(res, json);
 					});
 				});
       break;
 
       case 'benchmarks':
-    	  //funds.json?cmd=benchmarks
+    	  // funds.json?cmd=benchmarks
+        // {"benchmarks":["S&P 500", "NASDAQ 100", ...]}
   	    dbkey = "fund.benchmark.indices";
 				redisdb.select(0, function(reply) {				
 					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-            sendJSONData(res, data);
+            var json = {'benchmarks': data};
+            sendJSONData(res, json);
 					});
 				});
       break;
 
       case 'complete':
-      	//funds.json?cmd=complete&ticker=FM
-      	//OR
-      	//funds.json?cmd=complete&name=Fidelity
+      	// funds.json?cmd=complete&ticker=FM OR funds.json?cmd=complete&name=Fidelity
+      	// {"results":["FMAGX", "FMBGX", ...]}
+      	// {"results":["Fidelity Magellan", "Fidelity Capital", ...]}
       	var ticker = uri.query.ticker;
       	var name = uri.query.name;
     	
@@ -214,18 +228,28 @@ http.createServer(function (req, res) {
           sendGoogleSuggestionList(res, "fund.tickers.auto.complete", ticker);
         } else if (name != null) {
           sendGoogleSuggestionList(res, "fund.names.auto.complete", name);
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
         }
       break;
 
       case 'searchByName':
       	// funds?cmd=searchByName&name=Fidelity Emerging Asia Fund
-      	if (uri.query.name != null) {
-    	    dbkey = "fund.name:"+uri.query.name+":tickers";
+      	// {"tickers":["AAAAX", "AAABX", ...]}
+      	var name = uri.query.name;
+
+      	if (name != null) {
+    	    dbkey = "fund.name:"+name+":tickers";
   				redisdb.select(0, function(reply) {				
   					redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              sendJSONData(res, data);
+              var json = {'tickers': data};
+              sendJSONData(res, json);
   					});
   				});
+        } else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
         }
       break;
         
@@ -608,18 +632,29 @@ http.createServer(function (req, res) {
 
     	case 'prices':
     		// funds?cmd=prices&ticker=FMAGX
-    		var ticker = uri.query.ticker,
-			      dbkey = "338::"+ticker;
-
-		    redisdb.select(0, function(reply) {
-	        redisdb.get(dbkey, function(err, data) {
-            sendJSONData(res, data);
-	        });
-			  });
+    		// {"prices":{"TickerSymbol":"IBM", "LastPrice":100.10, "BidPrice:99.00, ..."}}
+    		var ticker = uri.query.ticker;
+    		
+    		if (ticker != null) {
+  			  var dbkey = "338::"+ticker;
+  		    redisdb.select(0, function(reply) {
+  	        redisdb.get(dbkey, function(err, data) {
+              var json = {'prices': {}};
+              if (data != null) {
+                json = {'prices':data};
+              }
+              sendJSONData(res, json);
+  	        });
+  			  });
+    		} else {
+          data = {"errors":[errmsg['MissingParam']]};
+          sendJSONData(res, data);
+    		}
+    		
 	  	break;
-	  	
+
 	  	default:
-        data = {"errors":[{"message":"Sorry, that page does not exist","code":34}]};
+        data = {"errors":[errmsg['InvalidCommand']]};
         sendJSONData(res, data);
 	  	break;
     } // switch (cmd)
@@ -629,10 +664,11 @@ http.createServer(function (req, res) {
       switch (cmd) {
       	case 'profile':
       		// etfs.json?cmd=profile&ticker=SPY
+      		// {"profile":{"CUSIP":123456789, ...}}
       		var ticker = uri.query.ticker;
 
           if (ticker == null) {
-            data = {"errors":[errmsg['30']]};
+            data = {"errors":[errmsg['MissingParam']]};
             sendJSONData(res, data);
           } else {
     			  var dbkey = "etf:"+ticker+":profile";
@@ -647,10 +683,11 @@ http.createServer(function (req, res) {
 
       	case 'components':
       		// etfs.json?cmd=components&ticker=SPY
+      		// {"components":[{"TickerSymbol":"IBM"}, {"ShareQuantity":10000}, ...]}
       		var ticker = uri.query.ticker;
           
           if (ticker == null) {
-            data = {"errors":[errmsg['30']]};
+            data = {"errors":[errmsg['MissingParam']]};
             sendJSONData(res, data);
           } else {
   		      var dbkey = "etf:"+ticker+":components";
@@ -663,10 +700,11 @@ http.createServer(function (req, res) {
 
       	case 'searchByComponent':
       		// etfs.json?cmd=searchByComponent&ticker=IBM
+      		// {"tickers":["SPY", "AAA", ...]}
       		var ticker = uri.query.ticker;
 
           if (ticker == null) {
-            data = {"errors":[errmsg['30']]};
+            data = {"errors":[errmsg['MissingParam']]};
             sendJSONData(res, data);
           } else {
   		      var dbkey = ticker+":etf.tickers";
@@ -678,7 +716,7 @@ http.createServer(function (req, res) {
   	  	break;
 
   	  	default:
-          data = {"errors":[errmsg['10']]};
+          data = {"errors":[errmsg['InvalidCommand']]};
           sendJSONData(res, data);
   	  	break;
       }
