@@ -1,44 +1,55 @@
 =begin
   Redis DB layout for fund data is defined as follows:
   
-  key => "MFTickers"
+  key => "fund.tickers"
   val => sorted set of fund tickers.
+  e.g.=> "fund.tickers" => ['AAAAX', 'AAABX', ...]
 
-  key => "MFNames"
+  key => "fund.names"
   val => sorted set of fund names.
   e.g.=> "fund.names" => ['AC ONE China Fund, ...]
 
-  key => "MFID:#{fundid}:Tickers".
-  val => sorted set of fund tickers for the given fund.
-
-  key => "MFSponsors"
+  key => "fund.name:#{fname}:tickers".
+  val => sorted set of fund tickers for the given fund name.
+  e.g.=> "fund.name:Fidelity Magellan:tickers" => ['FMAGX']
+  
+  key => "fund.sponsors"
   val => sorted set of fund sponsors.
+  e.g.=> "fund.sponsors" => ['Brinton Eaton', ...]
   
-  key => "MFSponsor:#{sponsorid}:Tickers".
+  key => "fund.sponsor:#{fsponsor}:tickers".
   val => sorted set of fund tickers for the given fund sponsor.
+  e.g.=> "fund.sponsor:Brinton Eaton:tickers" => ['GDAAX', 'GDAIX', 'GDAMX']
   
-  key => "MFSponsor:#{sponsorid}:FundNames".
+  key => "fund.sponsor:#{fsponsor}:names".
   val => sorted set of fund names for the given sponsor.
-    
-  key => "MFPrimaryGroups".
+  e.g.=> "fund.sponsor:Brinton Eaton:names" => ['The Giralda Fund']
+  
+  key => "fund.primary.groups".
   val => sorted set of fund primary groups.
-
-  key => "MFPrimaryGroupID:#{groupid}:Tickers".
+  e.g.=> "fund.primary.groups" => ["US Equity", ...]
+  
+  key => "fund.primary.group:#{pgroup}:tickers".
   val => sorted set of fund tickers that belong to the given primary group.
+  e.g.=> "fund.primary.group:US Equity:tickers" => ["FMAGX", ...]
   
-  key => "MFSecondaryGroups".
+  key => "fund.secondary.groups".
   val => sorted set of fund secondary groups.
+  e.g.=> "fund.secondary.groups" => ["Small Cap Growth", ...]
   
-  key => "MFSecondaryGroupID:#{groupid}:Tickers".
+  key => "fund.secondary.group:#{sgroup}:tickers".
   val => sorted set of fund tickers that belong to the given secondary group.
+  e.g.=> "fund.secondary.group:Small Cap Growth:tickers" => ["WSMGX", ...]
 
-  key => "MFBenchmarkIndices".
+  key => "fund.benchmark.indices".
   val => sorted set of benchmark indices.
+  e.g.=> "fund.benchmark.indices" => ["S&P 500", ...]
   
-  key => "MFBenchmarkIndexID:#{indexid}:Tickers".
+  key => "fund.benchmark.index:#{bindex}:tickers".
   val => sorted set of fund tickers that belong to the given benchmark index.
+  e.g.=> "fund.benchmark.index:S & P 500:tickers" => ["WRESX", ...]
 
-  key => "MFTicker:#{fticker}:Fees"
+  key => "fund:#{fticker}:fees"
   val => hashtable of fund fee related data elements.
           "ManagementFees",
           "b12-1Fee",
@@ -49,14 +60,14 @@
           "DeferredLoad",
           "DeferredLoadDuration"
   
-  key => "MFTicker:#{fticker}:Ratios"
+  key => "fund:#{fticker}:ratios"
   val => hashtable of fund expense related data elements.
           "TotalExpenseRatio",
           "NetExpenseRatio",
           "Turnover",
           "TurnoverDate"
 
-  key => "MFTicker:#{fticker}:Managers"
+  key => "fund:#{fticker}:managers"
   val => hashtable of fund management related data elements.
           "TeamManagement",
           "ManagerName1",
@@ -66,7 +77,7 @@
           "ManagerTenure2",
           "ManagerTenure3"
 
-  key => "MFTicker:#{fticker}:Profile"
+  key => "fund:#{fticker}:profile"
   val => hashtable of fund profile related data elements.
           "Name",
           "ShareClass",
@@ -88,7 +99,7 @@
           "ExpenseWaiverOptionCode",
           "DividendFrequency"
 
-  key => "MFTicker:#{fticker}:Sponsor"
+  key => "fund:#{fticker}:sponsor"
   val => hashtable of fund sponsor related data elements.
           "Sponsor",
           "SponsorPhone",
@@ -99,7 +110,7 @@
           "SponsorState",
           "SponsorZip"
 
-  key => "MFTicker:#{fticker}:Basics"
+  key => "fund:#{fticker}:basics"
   val => hashtable of fund basic data elements.
           "Symbol",
           "Name",
@@ -108,7 +119,7 @@
           "BenchmarkIndex",
           "FiscalYearEndDate"
                         
-  key => "MFTicker:#{fticker}:Returns"
+  key => "fund:#{fticker}:returns"
   val => hashtable of fund performance or returns related data elements.
           "Yr1TotalReturns",
           "Yr3TotalReturns",
@@ -137,18 +148,22 @@
           "Month12Yield",
           "YieldDate"
 
-  key => "MFTicker:#{fticker}:TotalNetAssets"
-  val => hashtable of dates and values for which total net assets are available.
+  key => "fund:#{fticker}:hist"
+  val => json object of fund historical data.
+          {:Date =>, :TotalNetAssets =>, :Turnover =>, :TotalReturns =>}
     
-  key => "MFTicker:#{fticker}:TotalReturns"
-  val => hashtable of dates and values for which total returns are available.
-
-  key => "MFTicker:#{fticker}:Turnover"
-  val => hashtable of dates and values for which turnovers are available.
+  key => "fund.tickers.auto.complete"
+  val => sorted set of fund tickers auto completion list
+  e.g => ["A", "AA", "AAA", "AAAA", "AAAAX", ...]
+  
+  key => "fund.names.auto.complete"
+  val => sorted set of fund names auto completion list
+  e.g => ["A", "AC", "AC ", "AC O", "AC ON", ...]          
 =end
 
 require 'csv'
 require 'redis'
+require 'json'
 require 'getoptlong'
 
 # call using "ruby load-basic-data.rb -i<input file>"  
@@ -180,68 +195,72 @@ if $infile && File.exist?($infile)
 	  #print "#{row.size}=>"
 	  #p row
 	  if row[1] == "2"
-      #MF|2|DWS Alternative Asset Allocation Fund|Deutsche Investment Management Americas Inc|AAAAX|233376763|A|07/30/2007|Alternative|Alternative Strategy|08/01/2012|The fund seeks capital appreciation.|MAIN INVESTMENTS. The fund is a fund-of-funds, which means its assets are invested in a combination of other DWS funds, certain other securities and derivative instruments (the use of derivatives by the fund and the underlying funds in which the fund invests is described below in Global Tactical Asset Allocation Strategy and Derivatives). The fund seeks to achieve its objective by investing in alternative (or nontraditional) asset categories and investment strategies. The fund may also invest in securities of Exchange Traded Funds (ETFs) or hedge funds when the desired economic exposure to a particular asset category or investment strategy is not available through a DWS fund (ETFs, hedge funds and DWS funds are collectively referred to as underlying funds). The fund's allocations among the underlying funds may vary over time. MANAGEMENT PROCESS. Portfolio management allocates the fund's assets among underlying funds that emphasize the following strategies and/or asset categories: market neutral, inflation-protection, commodities, real estate, floating rate loans, infrastructure, emerging markets and other alternative strategies.||Barclays Capital US Aggregate Bond|0.20|2.10|1.91|0.25||0|5.75|Y||0|542.557665|03/31/2010|32|03/31/2012|37.04|2.4|65.58|0.8||1000|50|500|50|Y|Contractual|07/31/2013||-9.01||||-0.48|2011-12-31|15.11|Q2 2009|-16.48|Q4 2008|-10.22||||-1.71|-5.80||||-1.10|||||Team Management|Robert Wang|Inna Okounkova|Thomas Picciochi|2007|2007|2007|3.1|7/31/2010|800-621-1048|www.dws-investments.com|345 Park Avenue||New York|NY|10154|Annually|10/31/2011
 	    # record type 2 => fundamental data
 	    fticker = row[4]
 	    if fticker
-        # throw into the MFTickers bucket...
-        $redisdb.zadd :MFTickers, 0, fticker.strip
+	      #puts "#{fticker} => #{row[2]}
+
+        # throw into the fund:tickers bucket...
+        dbkey = "fund.tickers"
+        $redisdb.zadd dbkey, 0, fticker
 
 	      fname = row[2]
 	      if fname
-          # throw into the MFNames bucket...
-          $redisdb.zadd :MFNames, 0, fname.strip
-          fid = $redisdb.zrank :MFNames, fname.strip
-          if fid
-  	        # map of fund names and the associated tickers...
-            $redisdb.zadd "MFID:#{fid}:Tickers", 0, fticker.strip
-          end
-  	      fsponsor = row[3]
-  	      if fsponsor
-  	        # throw into the MFSponsors bucket...
-            $redisdb.zadd :MFSponsors, 0, fsponsor.strip
-            sid = $redisdb.zrank :MFSponsors, fsponsor.strip
-            if sid
-    	        # map of fund sponsors and the associated tickers...
-              $redisdb.zadd "MFSponsorID:#{sid}:Tickers", 0, fticker.strip
+          # throw into the fund:names bucket...
+          dbkey = "fund.names"
+          $redisdb.zadd dbkey, 0, fname
 
-    	        # map of fund sponsors and the associated funds...
-    	        $redisdb.zadd "MFSponsorID:#{sid}:FundNames", 0, fname.strip
-            end
-  	      end
+	        # throw into the appropripate fund.name:<fund name>:tickers bucket...
+	        dbkey = "fund.name:#{fname}:tickers"
+          $redisdb.zadd dbkey, 0, fticker
+	      end
+	      fsponsor = row[3]
+	      if fsponsor
+	        # throw into the fund.sponsors bucket...
+	        dbkey = "fund.sponsors"
+          $redisdb.zadd dbkey, 0, fsponsor
+
+	        # throw into the appropripate fund.sponsor:<fund sponsor name>:tickers bucket...
+	        dbkey = "fund.sponsor:#{fsponsor}:tickers"
+          $redisdb.zadd dbkey, 0, fticker
+
+	        # throw into the appropripate fund.sponsor:<fund sponsor name>:names bucket...
+	        dbkey = "fund.sponsor:#{fsponsor}:names"
+	        $redisdb.zadd dbkey, 0, fname
 	      end
 	      pgroup = row[8]
 	      if pgroup
-	        # throw into the MFPrimaryGroups bucket...
-          $redisdb.zadd :MFPrimaryGroups, 0, pgroup.strip
-          gid = $redisdb.zrank :MFPrimaryGroups, pgroup.strip
-          if gid
-  	        # map of fund primary groups and the associated tickers...
-            $redisdb.zadd "MFPrimaryGroupID:#{gid}:Tickers", 0, fticker.strip
-          end
+	        # throw into the fund.primary.groups bucket...
+	        dbkey = "fund.primary.groups"
+          $redisdb.zadd dbkey, 0, pgroup
+	        
+	        # throw into the appropripate fund.primary.group:<primary group>:tickers bucket...
+	        dbkey = "fund.primary.group:#{pgroup}:tickers"
+          $redisdb.zadd dbkey, 0, fticker
 	      end
 	      sgroup = row[9]
 	      if sgroup
-	        # throw into the MFSecondaryGroups bucket...
-          $redisdb.zadd :MFSecondaryGroups, 0, sgroup.strip
-          gid = $redisdb.zrank :MFSecondaryGroups, sgroup.strip
-          if gid
-  	        # map of fund secondary groups and the associated tickers...
-            $redisdb.zadd "MFSecondaryGroupID:#{gid}:Tickers", 0, fticker.strip
-          end
+	        # throw into the fund.secondary.groups bucket...
+	        dbkey = "fund.secondary.groups"
+          $redisdb.zadd dbkey, 0, sgroup
+
+	        # throw into the appropripate fund.secondary.group:<secondary group>:tickers bucket...
+	        dbkey = "fund.secondary.group:#{sgroup}:tickers"
+          $redisdb.zadd dbkey, 0, fticker
 	      end
 	      bindex = row[14]
 	      if bindex
-	        # throw into the MFBenchmarkIndices bucket...
-          $redisdb.zadd :MFBenchmarkIndices, 0, bindex.strip
-          bid = $redisdb.zrank :MFBenchmarkIndices, bindex.strip
-          if bid
-  	        # map of fund benchmark indices and the associated tickers...
-            $redisdb.zadd "MFBenchmarkIndexID:#{bid}:Tickers", 0, fticker.strip
-          end
+	        # throw into the fund.benchmark.indices bucket...
+	        dbkey = "fund.benchmark.indices"
+          $redisdb.zadd dbkey, 0, bindex
+	        
+	        # throw into the appropripate fund.benchmark.index:<benchmark index>:tickers bucket...
+	        dbkey = "fund.benchmark.index:#{bindex}:tickers"
+          $redisdb.zadd dbkey, 0, fticker
 	      end
+
 	      # update fees data...
-		    dbkey = "MFTicker:#{fticker}:Fees"
+		    dbkey = "fund:#{fticker}:fees"
 	      $redisdb.hmset dbkey, "ManagementFees", row[15],
                               "b12-1Fee", row[18],
                               "RedemptionFee", row[19],
@@ -252,14 +271,14 @@ if $infile && File.exist?($infile)
 	                            "DeferredLoadDuration", row[24]
 	      
 	      # update ratios data...
-		    dbkey = "MFTicker:#{fticker}:Ratios"
+		    dbkey = "fund:#{fticker}:ratios"
 	      $redisdb.hmset dbkey, "TotalExpenseRatio", row[16],
                               "NetExpenseRatio", row[17],
 	                            "Turnover", row[27],
 	                            "TurnoverDate", row[28]
 
 	      # update managers data...
-		    dbkey = "MFTicker:#{fticker}:Managers"
+		    dbkey = "fund:#{fticker}:managers"
 	      $redisdb.hmset dbkey, "TeamManagement", row[66],
 	                            "ManagerName1", row[67],
 	                            "ManagerName2", row[68],
@@ -269,7 +288,7 @@ if $infile && File.exist?($infile)
 	                            "ManagerTenure3", row[72]
 
 	      # update profile data...
-		    dbkey = "MFTicker:#{fticker}:Profile"
+		    dbkey = "fund:#{fticker}:profile"
 	      $redisdb.hmset dbkey, "Name", row[2],
 	                            "ShareClass", row[6],
 	                            "InceptionDate", row[7],
@@ -291,7 +310,7 @@ if $infile && File.exist?($infile)
 	                            "DividendFrequency", row[82]
 
 	      # update sponsor data...
-		    dbkey = "MFTicker:#{fticker}:Sponsor"
+		    dbkey = "fund:#{fticker}:sponsor"
 	      $redisdb.hmset dbkey, "Sponsor", row[3],
                               "SponsorPhone", row[75],
                               "SponsorWebsite", row[76],
@@ -302,7 +321,7 @@ if $infile && File.exist?($infile)
                               "SponsorZip", row[81]
 
 	      # update basic data...
-		    dbkey = "MFTicker:#{fticker}:Basics"
+		    dbkey = "fund:#{fticker}:basics"
 	      $redisdb.hmset dbkey, "Symbol", fticker,
                               "Name", row[2],
 	                            "CUSIP", row[5],
@@ -311,7 +330,7 @@ if $infile && File.exist?($infile)
 	                            "FiscalYearEndDate", row[83]
 	                            
 		    # update performance data...
-	      dbkey = "MFTicker:#{fticker}:Returns"
+	      dbkey = "fund:#{fticker}:returns"
 	      $redisdb.hmset dbkey, "Yr1TotalReturns", row[42],
 	                            "Yr3TotalReturns", row[43],
 	                            "Yr5TotalReturns", row[44],
@@ -344,25 +363,12 @@ if $infile && File.exist?($infile)
 	    # "MF"|"3"|"CAAMX"|"2005-12-31"|"8489000"|"5"|"7.01"|""
 	    fticker = row[2]
 	    if fticker
-        if row[3] and row[4]
-          $redisdb.hset "MFTicker:#{fticker.strip}:TotalNetAssets", row[3], row[4].to_i
-        end
-        if row[3] and row[5]
-          $redisdb.hset "MFTicker:#{fticker.strip}:Turnover", row[3], row[5].to_i
-        end
-        if row[3] and row[6]
-          $redisdb.hset "MFTicker:#{fticker.strip}:TotalReturns", row[3], row[6].to_f
-        end
-	    end
-=begin
-	    if fticker
         hash = {:Date => row[3], :TotalNetAssets => row[4], :Turnover => row[5], :TotalReturns => row[6]}
         #puts "#{fticker} => #{hash}"
         json = JSON.generate hash
         setkey = "fund:#{fticker}:hist"
         $redisdb.zadd setkey, 0, json
 	    end
-=end
 	  end
 	end # CSV.foreach
 end # if File.exist?($infile)
