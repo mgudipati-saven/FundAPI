@@ -1,37 +1,63 @@
 =begin
-  Redis DB layout for fund holdings and allocations data is defined as follows:
-
-  key => "MFNames"
-  val => sorted set of mutual fund names.
+  Redis DB layout for fund holdings data is defined as follows:
   
-  key => "AssetNames"
-  val => sorted set of asset names.
-
-  key => "SectorNames"
-  val => sorted set of sector names.
-
-  key => "CountryNames"
-  val => sorted set of country names.
-
-  key => "HoldingNames"
-  val => sorted set of holding company names.
-
-  key => "MFID:#{fundid}:HoldingID:#{holdingid}"
-  val => hashtable of holding dates and holding values.
+  key => "fund:#{fname}:holdings:dates"
+  val => sorted set of dates for which fund holdings information is available.
+  e.g.=> "fund:#{fname}:holdings:dates" => ['20121212', '20111212', ...]
   
-  key => "MFID:#{fundid}:AssetID:#{assetid}"
-  val => hashtable of asset allocation dates and values.
+  key => "fund:#{fname}:holdings:#{date}"
+  val => sorted set of json objects of holding information hashtables.
+          [ {"HoldingCompany" => "Apple Inc", "HoldingValue" => "10000000"},
+            {"HoldingCompany" => "Microsoft Inc", "HoldingValue" => "999999"},
+            {"HoldingCompany" => "Google Inc", "HoldingValue" => "888888"},
+            ...,
+            ...
+          ]
 
-  key => "MFID:#{fundid}:SectorID:#{sectorid}"
-  val => hashtable of sector allocation dates and values.
+  key => "fund:#{fname}:asset.allocation:dates"
+  val => sorted set of dates for which fund asset allocation information is available.
+  e.g.=> "fund:#{fname}:asset.allocation:dates" => ['20121212', '20111212', ...]
 
-  key => "MFID:#{fundid}:CountryID:#{countryid}"
-  val => hashtable of country allocation dates and values.
+  key => "fund:#{fname}:asset.allocation:#{date}"
+  val => sorted set of json objects of asset allocation information hashtables.
+          [ {"Asset" => row[3], "Allocation" => row[4]},
+            {"Asset" => row[3], "Allocation" => row[4]},
+            {"Asset" => row[3], "Allocation" => row[4]},
+            ...,
+            ...
+          ]
+
+  key => "fund:#{fname}:sector.allocation:dates"
+  val => sorted set of dates for which fund sector allocation information is available.
+  e.g.=> "fund:#{fname}:sector.allocation:dates" => ['20121212', '20111212', ...]
+
+  key => "fund:#{fname}:sector.allocation:#{date}"
+  val => sorted set of json objects of sector allocation information hashtables.
+          [ {"Sector" => row[3], "Allocation" => row[4]},
+            {"Sector" => row[3], "Allocation" => row[4]},
+            {"Sector" => row[3], "Allocation" => row[4]},
+            ...,
+            ...
+          ]
+
+  key => "fund:#{fname}:geo.allocation:dates"
+  val => sorted set of dates for which fund geography allocation information is available.
+  e.g.=> "fund:#{fname}:geo.allocation:dates" => ['20121212', '20111212', ...]
+
+  key => "fund:#{fname}:geo.allocation:#{date}"
+  val => sorted set of json objects of geography allocation information hashtables.
+          [ {"Country" => row[3], "Allocation" => row[4]},
+            {"Country" => row[3], "Allocation" => row[4]},
+            {"Country" => row[3], "Allocation" => row[4]},
+            ...,
+            ...
+          ]
 =end
 
 #!/usr/bin/env ruby -wKU
 require 'csv'
 require 'redis'
+require 'json'
 require 'getoptlong'
 
 # call using "ruby load-holding-data.rb -i<input file>"  
@@ -58,105 +84,73 @@ $redisdb = Redis.new
 $redisdb.select 0
 
 if $infile && File.exist?($infile)
-  CSV.foreach($infile, :quote_char => '|', :col_sep =>'|', :encoding => 'windows-1251:utf-8') do |row|
+  CSV.foreach($infile, :quote_char => '|', :col_sep =>'|', :row_sep =>:auto, :encoding => 'windows-1251:utf-8') do |row|
     if row[1] == "2"
       # holding information => "MFH"|"2"|"T Rowe Price Corporate Income Fund"|"WellPoint, 5.00%, 1/15/11"|"2010-05-31"|"373000"
-      fund = row[2].strip
-      if fund
-        # obtain the fund id
-        fid = $redisdb.zrank "MFNames", fund
-        if !fid
-          # add the fund
-          $redisdb.zadd "MFNames", 0, fund
-          fid = $redisdb.zrank "MFNames", fund
-        end
-        holding = row[3].strip
-        if holding
-          # obtain the holding id
-          hid = $redisdb.zrank "HoldingNames", holding
-          if !hid
-            # add the holding
-            $redisdb.zadd "HoldingNames", 0, holding
-            hid = $redisdb.zrank "HoldingNames", holding
-          end          
-          if row[4] and row[5]
-            $redisdb.hset "MFID:#{fid}:HoldingID:#{hid}", row[4], row[5].to_i
-          end
+      fname = row[2]
+      if fname
+        date = row[4]
+        if date
+          # throw the date into holdings:dates bucket for this fund
+	        setkey = "fund:#{fname}:holdings:dates"
+          $redisdb.zadd setkey, 0, date
+          
+          hash = {"HoldingCompany" => row[3], "HoldingValue" => row[5]}
+          json = JSON.generate hash
+          setkey = "fund:#{fname}:holdings:#{date}"
+          score = row[5]
+          $redisdb.zadd setkey, score, json
         end
       end
     elsif row[1] == "3"
       # asset allocation => "MFH"|"3"|"UBS Global Allocation Fund"|"Bond"|"9.77"|"2010-09-30"
-      fund = row[2].strip
-      if fund
-        # obtain the fund id
-        fid = $redisdb.zrank "MFNames", fund
-        if !fid
-          # add the fund
-          $redisdb.zadd "MFNames", 0, fund
-          fid = $redisdb.zrank "MFNames", fund
+      fname = row[2]
+      if fname
+        date = row[5]
+        if date
+          # throw the date into asset.allocation:dates bucket for this fund
+	        setkey = "fund:#{fname}:asset.allocation:dates"
+          $redisdb.zadd setkey, 0, date
+
+          hash = {"Asset" => row[3], "Allocation" => row[4]}
+          json = JSON.generate hash
+          setkey = "fund:#{fname}:asset.allocation:#{date}"
+          score = row[4]
+          $redisdb.zadd setkey, score, json
         end
-        asset = row[3].strip
-        if asset
-          # obtain the asset id
-          aid = $redisdb.zrank "AssetNames", asset
-          if !aid
-            # add the asset
-            $redisdb.zadd "AssetNames", 0, asset
-            aid = $redisdb.zrank "AssetNames", asset
-          end          
-          if row[4] and row[5]
-            $redisdb.hset "MFID:#{fid}:AssetID:#{aid}", row[5], row[4].to_f
-          end
-        end
-      end
+      end        
     elsif row[1] == "4"
       # sector allocation => "MFH"|"4"|"UBS Global Allocation Fund"|"Commercial Banks"|"2010-06-30"|"2.94"
-      fund = row[2].strip
-      if fund
-        # obtain the fund id
-        fid = $redisdb.zrank "MFNames", fund
-        if !fid
-          # add the fund
-          $redisdb.zadd "MFNames", 0, fund
-          fid = $redisdb.zrank "MFNames", fund
+      fname = row[2]
+      if fname
+        date = row[4]
+        if date
+          # throw the date into sector.allocation:dates bucket for this fund
+	        setkey = "fund:#{fname}:sector.allocation:dates"
+          $redisdb.zadd setkey, 0, date
+
+          hash = {"Sector" => row[3], "Allocation" => row[5]}
+          json = JSON.generate hash
+          setkey = "fund:#{fname}:sector.allocation:#{date}"
+          score = row[5]
+          $redisdb.zadd setkey, score, json
         end
-        sector = row[3].strip
-        if sector
-          # obtain the sector id
-          sid = $redisdb.zrank "SectorNames", sector
-          if !sid
-            # add the sector
-            $redisdb.zadd "SectorNames", 0, sector
-            sid = $redisdb.zrank "SectorNames", sector
-          end          
-          if row[4] and row[5]
-            $redisdb.hset "MFID:#{fid}:SectorID:#{sid}", row[4], row[5].to_f
-          end
-        end
-      end
+      end    
     elsif row[1] == "5"
       # geography allocation => "MFH"|"5"|"Aquila Three Peaks Opportunity Growth Fund"|"United States of America"|"6.9"|"2010-09-30"
-      fund = row[2].strip
-      if fund
-        # obtain the fund id
-        fid = $redisdb.zrank "MFNames", fund
-        if !fid
-          # add the fund
-          $redisdb.zadd "MFNames", 0, fund
-          fid = $redisdb.zrank "MFNames", fund
-        end
-        country = row[3].strip
-        if country
-          # obtain the country id
-          cid = $redisdb.zrank "CountryNames", country
-          if !cid
-            # add the county
-            $redisdb.zadd "CountryNames", 0, country
-            cid = $redisdb.zrank "CountryNames", country
-          end          
-          if row[4] and row[5]
-            $redisdb.hset "MFID:#{fid}:CountryID:#{cid}", row[5], row[4].to_f
-          end
+      fname = row[2]
+      if fname
+        date = row[5]
+        if date
+          # throw the date into geo.allocation:dates bucket for this fund
+	        setkey = "fund:#{fname}:geo.allocation:dates"
+          $redisdb.zadd setkey, 0, date
+
+          hash = {"Country" => row[3], "Allocation" => row[4]}
+          json = JSON.generate hash
+          setkey = "fund:#{fname}:geo.allocation:#{date}"
+          score = row[4]
+          $redisdb.zadd setkey, score, json
         end
       end
     end
