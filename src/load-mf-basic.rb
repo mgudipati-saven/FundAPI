@@ -10,6 +10,9 @@
   key => "mf:#{ticker}:id"
   val => mutual fund id for the given ticker symbol.
   
+  key => "fund.tickers"
+  val => sorted set of fund tickers.
+
   key => "mf:#{id}:basics"
   val => hashtable of basic fund data elements.
 =end
@@ -52,19 +55,23 @@ if $infile && File.exist?($infile)
 	    if fticker
         # check if the fund exists in the db...
         id = $redisdb.get "mf:#{fticker}:id"
-        if id == nil
+        if !id
           # create using next.mf.id counter...
           id = $redisdb.incr "next.mf.id"
+
+          # set the two way id <=> ticker references...
+          $redisdb.set "mf:#{fticker}:id", id
+          $redisdb.set "mf:#{id}:ticker", fticker
+
+          # throw the ticker into the fund:tickers set...
+          $redisdb.zadd "fund.tickers", 0, fticker
         end
-        # set the two way id <=> ticker references...
-        $redisdb.set "mf:#{fticker}:id", id
-        $redisdb.set "mf:#{id}:ticker", fticker
 
 	      # update basic data...
 		    dbkey = "mf:#{id}:basics"
 	      $redisdb.hmset dbkey, 
-          :Symbol, fticker,
-  	      :Series, row[2],
+          :TickerSymbol, fticker,
+  	      :SeriesName, row[2],
   	      :Sponsor, row[3],
           :CUSIP, row[5],
           :ShareClass, row[6],
