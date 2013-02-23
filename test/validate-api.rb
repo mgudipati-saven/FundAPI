@@ -587,6 +587,7 @@ end
 printf "%-80s", "valid fund history command given a fund ticker test..."
 res = HTTParty.get('http://127.0.0.1:8080/funds.json?cmd=hist&ticker=FMAGX')
 parsed = JSON.parse(res.body)
+#puts "\n#{JSON.pretty_generate parsed}"
 if parsed['history']
   printf "%20s", "passed\n".green
 else

@@ -727,14 +727,53 @@ http.createServer(function (req, res) {
 
     	case 'hist':
     		// funds?cmd=hist&ticker=FMAGX
-    		// {'history': [{'Date':'2007-03-31', 'TotalNetAssets':'43155000000', ...}, ...]}
+        /*
+        {
+          "history": {
+            "TotalNetAssets": {
+              "2008-03-31": "38322000000",
+              "2009-03-31": "17225000000",
+              "2010-03-31": "22628000000",
+              "2011-03-31": "19398000000",
+              "2012-03-31": "13665000",
+              "2007-03-31": "43155000000"
+            },
+            "Turnover": {
+              "2008-03-31": "57",
+              "2009-03-31": "67",
+              "2010-03-31": "39",
+              "2011-03-31": "42",
+              "2012-03-31": "99",
+              "2007-03-31": "41"
+            },
+            "TotalReturns": {
+              "2008-03-31": "2.08",
+              "2009-03-31": "-43.81",
+              "2010-03-31": "52.33",
+              "2011-03-31": "12.82",
+              "2012-03-31": "-2.36",
+              "2007-03-31": "3.21"
+            }
+          }
+        }
+        */
     		var ticker = uri.query.ticker;
 
         if (ticker != null) {
+          var json = {'history':{}};
   		    redisdb.select(0, function(reply) {
-			      var dbkey = "fund:"+ticker+":hist";
-  	        redisdb.zrange(dbkey, 0, -1, function(err, data) {
-              sendJSONData(res, {'history':data});
+			      var dbkey = "fund:"+ticker+":TotalNetAssets";
+  	        redisdb.hgetall(dbkey, function(err, data) {
+  	          json['history']['TotalNetAssets'] = data;
+  			      var dbkey = "fund:"+ticker+":Turnover";
+    	        redisdb.hgetall(dbkey, function(err, data) {
+    	          json['history']['Turnover'] = data;
+    			      var dbkey = "fund:"+ticker+":TotalReturns";
+      	        redisdb.hgetall(dbkey, function(err, data) {
+      	          json['history']['TotalReturns'] = data;
+                  sendJSONData(res, json);
+    	          });
+  	          });
   	        });
   			  });
         } else {
