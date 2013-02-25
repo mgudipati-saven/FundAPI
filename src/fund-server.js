@@ -53,11 +53,11 @@ function sendFundHoldings(res, name, n) {
   
   redisdb.select(0, function(reply) {
     // obtain the latest holdings date
-    var dbkey = "fund:"+name+":holdings:dates";
+    var dbkey = "fund.name:"+name+":holding.dates";
     if (redisdb.exists(dbkey)) {
       redisdb.zrevrange(dbkey, 0, n, function(err, dates) {
         if (dates.length != 0 && dates[0] != null) {
-          dbkey = "fund:"+name+":holdings:"+dates[0];
+          dbkey = "fund.name:"+name+":holdings:"+dates[0];
           redisdb.zrevrange(dbkey, 0, n, function(err, data) {
             json['holdings'] = data;
             sendJSONData(res, json);
@@ -792,7 +792,7 @@ http.createServer(function (req, res) {
     		if (ticker != null) {
   		    redisdb.select(0, function(reply) {
   		      var dbkey = "fund:"+ticker+":basics";
-  		      redisdb.hget(dbkey, "Name", function(err, data) {
+  		      redisdb.hget(dbkey, "SeriesName", function(err, data) {
               sendFundHoldings(res, data, 9);
 		        });
   			  });
